@@ -3,7 +3,7 @@ abstract AbsAction
 abstract AbsState
 
 getSuccessors(state::AbsState) = error("unimplemented")
-isTerminal(state::AbsState) = error("unimplemented")
+isTerminal(state::AbsState, env::AbsEnvironment) = error("unimplemented")
 getActions(state::AbsState) = error("unimplemented")
 
 #takes a state and an action, returns an environment info
