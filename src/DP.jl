@@ -15,7 +15,7 @@ function iterative_policy_evaluation(env::AbsEnvironment, policy::Policy; Ɣ=0.9
 		for s in states; V[s] = 0; end
 	end
 	delta = 1.0
-	threshold = 1e-5
+	threshold = 1e-7
 	iteration = 0
 
 	while delta > threshold
@@ -69,7 +69,7 @@ function policy_iteration(env::AbsEnvironment; Ɣ=0.9, verbose=false)
 		iteration += 1
 		for s in states
 			aa = policy.mapping[s][1][1]
-			m = -100000
+			m = -100000000.0
 			verbose && println("Before Update - State: $(s), Action: $(aa)")
 			for a in getActions(s, env)
 				total = 0.0
@@ -91,6 +91,56 @@ function policy_iteration(env::AbsEnvironment; Ɣ=0.9, verbose=false)
 	policy, V
 end
 
-function value_iteration(env::AbsEnvironment)
-	error("TODO: value iteration")
+function value_iteration(env::AbsEnvironment; Ɣ=0.9, verbose=false)
+	#Initialize V
+	V = Dict()
+	states = getAllStates(env)
+	for s in states; V[s] = rand(-5:5); end
+
+	#Value Iteration
+	delta = 1.0
+	threshold = 1e-7
+	iteration = 0
+
+	while delta > threshold
+		delta = 0.0
+		iteration += 1
+		for s in states
+			v = V[s]
+			m = -100000000.0
+			for a in getActions(s, env)
+				total = 0.0
+				for (sprime, r, pp) in getSuccessors(s, a, env)
+					total += pp * (r + Ɣ * V[sprime])
+				end
+
+				if total > m
+					m = total
+					V[s] = total
+				end
+			end
+			verbose && println("State: $(s), v: $(v), V: $(V[s])")
+			delta = max(delta, abs(v - V[s]))
+			verbose && println("Delta: $(delta)\n")
+		end
+	end
+
+	verbose && println("Number of iterations: $(iteration)")
+
+	#Deterministic Policy
+	policy = Policy()
+	for s in states
+		m = -100000000.0
+		for a in getActions(s, env)
+			total = 0.0
+			for (sprime, r, pp) in getSuccessors(s, a, env)
+				total += pp * (r + Ɣ * V[sprime])
+			end
+			if total > m
+				policy.mapping[s] = [(a, 1.0)]
+				m = total
+			end
+		end
+	end
+	return policy, V
 end
