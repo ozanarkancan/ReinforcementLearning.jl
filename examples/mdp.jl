@@ -1,8 +1,36 @@
 using ReinforcementLearning
+#=
+!!!When there are more than 10 actions or 10 states, there is a key issue for the 11th.
+=#
 
 function random_mdp()
-	mdp = MDP(4, 2)
+	g = Dict()
+	s = State(1)
+
+	mdp = MDP(100, 10)
 	printmdp(mdp)
+
+	println("Policy Iteration")
+	policy, V = policy_iteration(mdp; Ɣ=0.8, verbose=false)
+
+	ss = getAllStates(mdp)
+	for s in ss
+		println("State: $(s), Value: $(V[s]), Action: $(policy.mapping[s][1][1])")
+	end
+
+	println("Value Iteration")
+	policy, V = value_iteration(mdp; Ɣ=0.8, verbose=false)
+	for s in ss
+		println("State: $(s), Value: $(V[s]), Action: $(policy.mapping[s][1][1])")
+	end
+	
+	V = iterative_policy_evaluation(mdp, policy, Ɣ=0.8; verbose=false)
+	
+	println("Policy Evaluation")
+	for s in ss
+		println("State: $(s), Value: $(V[s])")
+	end
+
 end
 
 function twostates()
@@ -36,15 +64,23 @@ function twostates()
 	for s in ss
 		println("State: $(s), Value: $(V[s]), Action: $(policy.mapping[s][1][1])")
 	end
+
+	println("Value Iteration")
+	policy, V = value_iteration(mdp; Ɣ=0.8, verbose=false)
+	for s in ss
+		println("State: $(s), Value: $(V[s]), Action: $(policy.mapping[s][1][1])")
+	end
+
 end
 
 function main()
 	println("*** RANDOM MDP ***")
 	random_mdp()
-
+	
+	#=
 	println("*** Example MDP ***")
 	twostates()
+	=#
 end
-
 
 main()

@@ -1,14 +1,11 @@
 include("Environment.jl")
-import Base.==
-import Base.isequal
-import Base.hash
 
 type State <: AbsState; id; end
 type Action <: AbsAction; id; end
 
 ==(lhs::State, rhs::State) = lhs.id == rhs.id
 isequal(lhs::State, rhs::State) = lhs.id == rhs.id
-hash(a::State) = hash(a.id)
+hash(s::State) = hash(s.id)
 
 ==(lhs::Action, rhs::Action) = lhs.id == rhs.id
 isequal(lhs::Action, rhs::Action) = lhs.id == rhs.id
@@ -18,27 +15,29 @@ type MDP <: AbsEnvironment
 	ns#number of states
 	na#number of actions
 	graph#state + action ->  [state, reward, prob]
-	function MDP(ns::Int=3, na::Int=3)
+	MDP(ns, na, graph) = new(ns, na, graph)
+	function MDP(ns=3, na=3)
 		states = [State(i) for i in 1:ns]
 		actions = [Action(i) for i in 1:na]
 		graph = Dict()
 		for s in states
 			numA = rand(1:na)
 			indices = randperm(na)
-			for i=1:numA
+			graph[s] = Dict()
+			
+			for k=1:numA
+				a = actions[indices[k]]
 				numS = rand(1:ns)
 				indicesS = randperm(ns)
 				probs = rand(numS,)
 				probs = probs ./ sum(probs)
-				if i == 1
-					graph[s] = Dict()
-				end
 				
 				for j=1:numS
+					sprime = states[indicesS[j]]
 					if j == 1
-						graph[s][actions[indices[i]]] = [(states[indicesS[j]], rand(-100:100), probs[j])]
+						graph[s][a] = [(sprime, rand(-100:100), probs[j])]
 					else
-						push!(graph[s][actions[indices[i]]], (states[indicesS[j]], rand(-100:100), probs[j]))
+						push!(graph[s][a], (sprime, rand(-100:100), probs[j]))
 					end
 				end
 			end
@@ -46,6 +45,10 @@ type MDP <: AbsEnvironment
 		new(ns, na, graph)
 	end
 end
+
+getSuccessors(s::State, a::Action, env::MDP) = env.graph[s][a]
+getAllStates(env::MDP) = keys(env.graph)
+getActions(s::State, env::MDP) = keys(env.graph[s])
 
 function printmdp(mdp::MDP)
 	println("Number of states: $(mdp.ns)")
@@ -58,9 +61,5 @@ function printmdp(mdp::MDP)
 			end
 			println("")
 		end
-		println("")
 	end
 end
-
-#mdp = MDP(4, 2)
-#printmdp(mdp)
