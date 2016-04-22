@@ -2,7 +2,7 @@ include("Environment.jl")
 
 type Policy
 	mapping
-	Policy() = new(Dict())
+	Policy() = new(Dict{AbsState, Array{Tuple{AbsAction, Float64}}}())
 	Policy(mapping) = new(mapping)
 end
 
@@ -11,7 +11,7 @@ actionsAndProbs(policy::Policy, state::AbsState) = policy.mapping[state]
 function iterative_policy_evaluation(env::AbsEnvironment, policy::Policy; Ɣ=0.9, V=nothing, verbose=false)
 	states = getAllStates(env)
 	if V == nothing
-		V = Dict()
+		V = Dict{AbsState, Float64}()
 		for s in states; V[s] = 0; end
 	end
 	delta = 1.0
@@ -47,7 +47,7 @@ function policy_iteration(env::AbsEnvironment; Ɣ=0.9, verbose=false)
 	### INITIALIZATION ###
 	
 	#An arbitrary value function and policy
-	V = Dict()
+	V = Dict{AbsState, Float64}()
 	policy = Policy()
 	
 	for s in states
@@ -93,7 +93,7 @@ end
 
 function value_iteration(env::AbsEnvironment; Ɣ=0.9, verbose=false)
 	#Initialize V
-	V = Dict()
+	V = Dict{AbsState, Float64}()
 	states = getAllStates(env)
 	for s in states; V[s] = rand(-5:5); end
 

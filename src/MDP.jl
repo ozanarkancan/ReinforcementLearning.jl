@@ -19,11 +19,11 @@ type MDP <: AbsEnvironment
 	function MDP(ns=3, na=3)
 		states = [State(i) for i in 1:ns]
 		actions = [Action(i) for i in 1:na]
-		graph = Dict()
+		graph = Dict{State, Dict{Action,Array{Tuple{State, Float64, Float64}}}}()
 		for s in states
 			numA = rand(1:na)
 			indices = randperm(na)
-			graph[s] = Dict()
+			graph[s] = Dict{Action, Array{Tuple{State, Float64, Float64}}}()
 			
 			for k=1:numA
 				a = actions[indices[k]]

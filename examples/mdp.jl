@@ -1,16 +1,13 @@
 using ReinforcementLearning
-#=
-!!!When there are more than 10 actions or 10 states, there is a key issue for the 11th.
-=#
 
 function random_mdp()
 	g = Dict()
 	s = State(1)
 
-	mdp = MDP(100, 10)
+	mdp = MDP(20, 20)
 	printmdp(mdp)
 
-	println("Policy Iteration")
+	println("\nPolicy Iteration")
 	policy, V = policy_iteration(mdp; Ɣ=0.8, verbose=false)
 
 	ss = getAllStates(mdp)
@@ -18,7 +15,7 @@ function random_mdp()
 		println("State: $(s), Value: $(V[s]), Action: $(policy.mapping[s][1][1])")
 	end
 
-	println("Value Iteration")
+	println("\nValue Iteration")
 	policy, V = value_iteration(mdp; Ɣ=0.8, verbose=false)
 	for s in ss
 		println("State: $(s), Value: $(V[s]), Action: $(policy.mapping[s][1][1])")
@@ -26,7 +23,7 @@ function random_mdp()
 	
 	V = iterative_policy_evaluation(mdp, policy, Ɣ=0.8; verbose=false)
 	
-	println("Policy Evaluation")
+	println("\nPolicy Evaluation")
 	for s in ss
 		println("State: $(s), Value: $(V[s])")
 	end
