@@ -91,7 +91,7 @@ function policy_iteration(env::AbsEnvironment; Ɣ=0.9, verbose=false)
 	policy, V
 end
 
-function value_iteration(env::AbsEnvironment; Ɣ=0.9, verbose=false)
+function synchronous_value_iteration(env::AbsEnvironment; Ɣ=0.9, verbose=false)
 	#Initialize V
 	V = Dict{AbsState, Float64}()
 	states = getAllStates(env)
@@ -105,6 +105,7 @@ function value_iteration(env::AbsEnvironment; Ɣ=0.9, verbose=false)
 	while delta > threshold
 		delta = 0.0
 		iteration += 1
+		copyV = copy(V)
 		for s in states
 			v = V[s]
 			m = -100000000.0
@@ -116,13 +117,14 @@ function value_iteration(env::AbsEnvironment; Ɣ=0.9, verbose=false)
 
 				if total > m
 					m = total
-					V[s] = total
+					copyV[s] = total
 				end
 			end
-			verbose && println("State: $(s), v: $(v), V: $(V[s])")
+			verbose && println("State: $(s), v: $(v), V: $(copyV[s])")
 			delta = max(delta, abs(v - V[s]))
 			verbose && println("Delta: $(delta)\n")
 		end
+		for s in states; V[s] = copyV[s]; end
 	end
 
 	verbose && println("Number of iterations: $(iteration)")

@@ -16,7 +16,7 @@ function random_mdp()
 	end
 
 	println("\nValue Iteration")
-	policy, V = value_iteration(mdp; Ɣ=0.8, verbose=false)
+	policy, V = synchronous_value_iteration(mdp; Ɣ=0.8, verbose=false)
 	for s in ss
 		println("State: $(s), Value: $(V[s]), Action: $(policy.mapping[s][1][1])")
 	end
@@ -63,7 +63,7 @@ function twostates()
 	end
 
 	println("Value Iteration")
-	policy, V = value_iteration(mdp; Ɣ=0.8, verbose=false)
+	policy, V = synchronous_value_iteration(mdp; Ɣ=0.8, verbose=false)
 	for s in ss
 		println("State: $(s), Value: $(V[s]), Action: $(policy.mapping[s][1][1])")
 	end
