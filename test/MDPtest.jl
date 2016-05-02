@@ -34,3 +34,7 @@ p, V = policy_iteration(mdp; Ɣ=0.8, verbose=false)
 p, V = synchronous_value_iteration(mdp; Ɣ=0.8, verbose=false)
 @test policy.mapping[ss[1]][1][1] == p.mapping[ss[1]][1][1]
 @test policy.mapping[ss[2]][1][1] == p.mapping[ss[2]][1][1]
+
+p, V = gauss_seidel_value_iteration(mdp; Ɣ=0.8, verbose=false)
+@test policy.mapping[ss[1]][1][1] == p.mapping[ss[1]][1][1]
+@test policy.mapping[ss[2]][1][1] == p.mapping[ss[2]][1][1]

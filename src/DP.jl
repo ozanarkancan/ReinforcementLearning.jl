@@ -146,3 +146,65 @@ function synchronous_value_iteration(env::AbsEnvironment; Ɣ=0.9, verbose=false)
 	end
 	return policy, V
 end
+
+function gauss_seidel_value_iteration(env::AbsEnvironment; Ɣ=0.9, verbose=false)
+	#Initialize V
+	V = Dict{AbsState, Float64}()
+	states = getAllStates(env)
+	for s in states; V[s] = rand(-5:5); end
+
+	#Value Iteration
+	delta = 1.0
+	threshold = 1e-7
+	iteration = 0
+
+	while delta > threshold
+		delta = 0.0
+		iteration += 1
+		copyV = copy(V)
+		updated = Set{AbsState}()
+		for s in states
+			v = V[s]
+			m = -100000000.0
+			for a in getActions(s, env)
+				total = 0.0
+				for (sprime, r, pp) in getSuccessors(s, a, env)
+					if sprime in updated
+						total += pp * (r + Ɣ * copyV[sprime])
+					else
+						total += pp * (r + Ɣ * V[sprime])
+					end
+				end
+
+				if total > m
+					m = total
+					copyV[s] = total
+				end
+			end
+			push!(updated, s)
+			verbose && println("State: $(s), v: $(v), V: $(copyV[s])")
+			delta = max(delta, abs(v - copyV[s]))
+			verbose && println("Delta: $(delta)\n")
+		end
+		for s in states; V[s] = copyV[s]; end
+	end
+
+	verbose && println("Number of iterations: $(iteration)")
+
+	#Deterministic Policy
+	policy = Policy()
+	for s in states
+		m = -100000000.0
+		for a in getActions(s, env)
+			total = 0.0
+			for (sprime, r, pp) in getSuccessors(s, a, env)
+				total += pp * (r + Ɣ * V[sprime])
+			end
+			if total > m
+				policy.mapping[s] = [(a, 1.0)]
+				m = total
+			end
+		end
+	end
+	return policy, V
+end
