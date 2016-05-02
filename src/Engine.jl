@@ -9,7 +9,7 @@ function playEpisode(env::AbsEnvironment, agent::AbsAgent; verbose=false)
 	verbose && println("Initial State: $(state)")
 
 	while !isTerminal(state, env)
-		action = play(agent, state)
+		action = play(agent, state, env)
 		verbose && println("Action: $(action)")
 		state, reward = transfer(env, state, action)
 		verbose && println("State: $(state)")
@@ -18,6 +18,6 @@ function playEpisode(env::AbsEnvironment, agent::AbsAgent; verbose=false)
 		numOfStates += 1
 	end
 
-	play(agent, state)
+	play(agent, state, env)
 	return (totalRewards, numOfStates)
 end

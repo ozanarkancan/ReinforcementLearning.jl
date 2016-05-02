@@ -1,4 +1,7 @@
 importall ReinforcementLearning
+import Base.==
+import Base.isequal
+import Base.hash
 
 #recursive backtracking algorithm
 function generate_maze(h = 4, w = 4)
@@ -98,12 +101,17 @@ type MazeState <: AbsState
 	orientation
 end
 
-
 @enum Action MOVE LEFT RIGHT
 
 type MazeAction <: AbsAction; act::Action; end
 
-getActions(state::MazeState) = [MazeAction(MOVE), MazeAction(LEFT), MazeAction(RIGHT)]
+==(lhs::MazeAction, rhs::MazeAction) = lhs.act == rhs.act
+isequal(lhs::MazeAction, rhs::MazeAction) = lhs.act == rhs.act
+hash(a::MazeAction) = hash(a.act)
+
+==(lhs::MazeState, rhs::MazeState) = (lhs.loc[1] == rhs.loc[1] && lhs.loc[2] == rhs.loc[2] && lhs.orientation == rhs.orientation)
+isequal(lhs::MazeState, rhs::MazeState) = ==(lhs, rhs)
+hash(s::MazeState) = hash([s.loc; s.orientation])
 
 type MazeEnv <: AbsEnvironment
 	dims
@@ -111,22 +119,45 @@ type MazeEnv <: AbsEnvironment
 	start
 	goal
 	
-	MazeEnv(dims) = new(dims, generate_maze(dims[1], dims[2]), ind2sub(dims, rand(1:prod(dims))), ind2sub(dims, rand(1:prod(dims))))
+	MazeEnv(dims) = new(dims, generate_maze(dims[1], dims[2]), (rand(1:dims[1]), 1), (rand(1:dims[1]), dims[2]))
 	MazeEnv() = Maze((5, 5))
 end
 
 getInitialState(env::MazeEnv) = MazeState(env.start, 1)
+getActions(state::MazeState, env::MazeEnv) = [MazeAction(MOVE), MazeAction(LEFT), MazeAction(RIGHT)]
+
+function getAllStates(env::MazeEnv)
+	states = MazeState[MazeState((0,0), 1), MazeState((0,0), 2), MazeState((0,0), 3), MazeState((0,0), 4)]
+	for i=1:env.dims[1]
+		for j=1:env.dims[2]
+			for a=1:4
+				push!(states, MazeState((i, j), a))
+			end
+		end
+	end
+	return states
+end
 
 function isTerminal(state::MazeState, env::MazeEnv)
 	(state.loc[1] == 0 && state.loc[2] == 0) || 
 		(state.loc[1] == env.goal[1] && state.loc[2] == env.goal[2])
 end
 
+function getSuccessors(state::MazeState, a::MazeAction, env::MazeEnv)
+	successors = Array{Tuple{MazeState, Float64, Float64}, 1}()
+	push!(successors, transfer(env, state, a))
+	return successors
+end
+
 function transfer(env::MazeEnv, state::MazeState, action::MazeAction)
 	loc = state.loc
 	orientation = state.orientation
-	reward = -1
+	reward = -1.0
 	next_state = nothing
+
+	if (loc[1] == 0 && loc[2] == 0)
+		return (state, -1000.0, 1.0)
+	end
 
 	if action.act == LEFT
 		orientation = orientation == 1 ? 4 : orientation - 1
@@ -135,8 +166,9 @@ function transfer(env::MazeEnv, state::MazeState, action::MazeAction)
 		orientation = orientation == 4 ? 1 : orientation + 1
 		next_state = MazeState(loc, orientation)
 	else#move
+
 		if env.maze[loc[1], loc[2], orientation] == 0
-			reward = -500
+			reward = -500.0
 			next_state = MazeState((0, 0), orientation)
 		else
 			if orientation == 1
@@ -150,25 +182,48 @@ function transfer(env::MazeEnv, state::MazeState, action::MazeAction)
 			end
 
 			next_state = MazeState(loc, orientation)
-			reward = (loc[1] == env.goal[1] && loc[2] == env.goal[2]) ? 1000 : -1
+			reward = (loc[1] == env.goal[1] && loc[2] == env.goal[2]) ? 1000.0 : -1.0
 		end
 	end
-	return (next_state, reward)
+	return (next_state, reward, 1.0)
 end
 
 function main()
-	env = MazeEnv((5,5))
+	env = MazeEnv((3, 3))
 	print_maze(env.maze)
-	println(env.start)
 	agent = RandomAgent()
 
 	numberOfEpochs = 10
 	rewards = Any[]
 
+	ss = getAllStates(env)
+
+	@time policy, V = synchronous_value_iteration(env; Ɣ=0.9, verbose=false)
+	
+	println("Start: $(env.start)")
+	println("Goal: $(env.goal)")
+
+	println("Value Iteration")
+
+	for s in ss
+		println("State: $(s), Value: $(V[s]), Action: $(policy.mapping[s][1][1])")
+	end
+
+	@time policy, V = policy_iteration(env::AbsEnvironment; Ɣ=0.9, verbose=false)
+
+	println("Policy Iteration")
+	
+	for s in ss
+		println("State: $(s), Value: $(V[s]), Action: $(policy.mapping[s][1][1])")
+	end
+
+	#=
 	for i=1:numberOfEpochs
-		totalRewards, numberOfStates = playEpisode(env, agent; verbose = true)
+		#totalRewards, numberOfStates = playEpisode(env, agent; verbose = true)
+		totalRewards, numberOfStates = playEpisode(env, agent)
 		push!(rewards, totalRewards)
 	end
+	=#
 end
 
 main()

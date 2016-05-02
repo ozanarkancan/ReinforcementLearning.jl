@@ -7,20 +7,21 @@ abstract AbsAction
 abstract AbsState
 
 #returns successor states with their probabilities and related rewards
-getSuccessors(state::AbsState, env::AbsEnvironment) = error("unimplemented")
-getSuccessors(state::AbsState, action::AbsAction, env::AbsEnvironment) = error("unimplemented")
-isTerminal(state::AbsState, env::AbsEnvironment) = error("unimplemented")
-getActions(state::AbsState, env::AbsEnvironment) = error("unimplemented")
+getSuccessors(state::AbsState, env::AbsEnvironment) = error("getSuccessors is unimplemented")
+getSuccessors(state::AbsState, action::AbsAction, env::AbsEnvironment) = error("getSuccessors is unimplemented")
+isTerminal(state::AbsState, env::AbsEnvironment) = error("isTerminal is unimplemented")
+getActions(state::AbsState, env::AbsEnvironment) = error("getActions is unimplemented")
 
 #takes a state and an action, returns an environment info
-transfer(env::AbsEnvironment, state::AbsState, action::AbsAction) = error("unimplemented")
-getInitialState(env::AbsEnvironment) = error("unimplemented")
-getAllStates(env::AbsEnvironment) = error("unimplemented")
+transfer(env::AbsEnvironment, state::AbsState, action::AbsAction) = error("transfer is unimplemented")
+getInitialState(env::AbsEnvironment) = error("getInitialState is unimplemented")
+getAllStates(env::AbsEnvironment) = error("getAllStates unimplemented")
 
-==(l::AbsAction, r::AbsAction) = error("unimplemented")
-isequal(l::AbsAction, r::AbsAction) = error("unimplemented")
-hash(x::AbsAction) = error("unimplemented")
 
-==(l::AbsState, r::AbsState) = error("unimplemented")
-isequal(l::AbsState, r::AbsState) = error("unimplemented")
-hash(x::AbsState) = error("unimplemented")
+==(l::AbsAction, r::AbsAction) = error("== is unimplemented")
+isequal(l::AbsAction, r::AbsAction) = error("isequal is unimplemented")
+hash(x::AbsAction) = error("hash is unimplemented")
+
+==(l::AbsState, r::AbsState) = error("== is unimplemented")
+isequal(l::AbsState, r::AbsState) = error("isequal is unimplemented")
+hash(x::AbsState) = error("hash is unimplemented")

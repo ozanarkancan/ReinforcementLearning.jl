@@ -121,7 +121,7 @@ function synchronous_value_iteration(env::AbsEnvironment; Ɣ=0.9, verbose=false)
 				end
 			end
 			verbose && println("State: $(s), v: $(v), V: $(copyV[s])")
-			delta = max(delta, abs(v - V[s]))
+			delta = max(delta, abs(v - copyV[s]))
 			verbose && println("Delta: $(delta)\n")
 		end
 		for s in states; V[s] = copyV[s]; end
