@@ -16,11 +16,17 @@ function random_mdp()
 	end
 
 	println("\nValue Iteration")
-	policy, V = synchronous_value_iteration(mdp; Ɣ=0.8, verbose=false)
+	policy, V = synchronous_value_iteration(mdp; Ɣ=0.8, verbose=true)
 	for s in ss
 		println("State: $(s), Value: $(V[s]), Action: $(policy.mapping[s][1][1])")
 	end
 	
+	println("\nGauss-Seidel Value Iteration")
+	policy, V = gauss_seidel_value_iteration(mdp; Ɣ=0.8, verbose=true)
+	for s in ss
+		println("State: $(s), Value: $(V[s]), Action: $(policy.mapping[s][1][1])")
+	end
+
 	V = iterative_policy_evaluation(mdp, policy, Ɣ=0.8; verbose=false)
 	
 	println("\nPolicy Evaluation")

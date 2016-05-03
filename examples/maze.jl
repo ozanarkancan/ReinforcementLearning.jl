@@ -189,16 +189,13 @@ function transfer(env::MazeEnv, state::MazeState, action::MazeAction)
 end
 
 function main()
-	env = MazeEnv((3, 3))
+	env = MazeEnv((5,5))
 	print_maze(env.maze)
-	agent = RandomAgent()
-
-	numberOfEpochs = 10
-	rewards = Any[]
-
+	
+	#==
 	ss = getAllStates(env)
 
-	@time policy, V = synchronous_value_iteration(env; Ɣ=0.9, verbose=false)
+	@time policy, V = synchronous_value_iteration(env; Ɣ=0.9, verbose=true)
 	
 	println("Start: $(env.start)")
 	println("Goal: $(env.goal)")
@@ -216,14 +213,28 @@ function main()
 	for s in ss
 		println("State: $(s), Value: $(V[s]), Action: $(policy.mapping[s][1][1])")
 	end
+	
+	println("Gauss-Seidel Value Iteration")
+	@time policy, V = gauss_seidel_value_iteration(env; Ɣ=0.9, verbose=true)
 
-	#=
-	for i=1:numberOfEpochs
+	for s in ss
+		println("State: $(s), Value: $(V[s]), Action: $(policy.mapping[s][1][1])")
+	end
+
+	==#
+	
+	agent = QLearner(env)
+
+	numberOfEpochs = 50
+	rewards = Any[]
+	
+	@time for i=1:numberOfEpochs
 		#totalRewards, numberOfStates = playEpisode(env, agent; verbose = true)
 		totalRewards, numberOfStates = playEpisode(env, agent)
 		push!(rewards, totalRewards)
+		println("Epoch: $i, totalReward: $totalRewards")
 	end
-	=#
+	
 end
 
 main()

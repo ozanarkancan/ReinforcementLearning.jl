@@ -14,10 +14,10 @@ function playEpisode(env::AbsEnvironment, agent::AbsAgent; verbose=false)
 		state, reward = transfer(env, state, action)
 		verbose && println("State: $(state)")
 		verbose && println("Reward: $(reward)")
+		observe(agent, state, reward, env)
 		totalRewards += reward
 		numOfStates += 1
 	end
 
-	play(agent, state, env)
 	return (totalRewards, numOfStates)
 end

@@ -99,7 +99,7 @@ function synchronous_value_iteration(env::AbsEnvironment; Ɣ=0.9, verbose=false)
 
 	#Value Iteration
 	delta = 1.0
-	threshold = 1e-7
+	threshold = 1e-7 * (1 - Ɣ) / (2 * Ɣ)
 	iteration = 0
 
 	while delta > threshold
@@ -155,7 +155,7 @@ function gauss_seidel_value_iteration(env::AbsEnvironment; Ɣ=0.9, verbose=false
 
 	#Value Iteration
 	delta = 1.0
-	threshold = 1e-7
+	threshold = 1e-7 * (1 - Ɣ) / (2 * Ɣ)
 	iteration = 0
 
 	while delta > threshold
