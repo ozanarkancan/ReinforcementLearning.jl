@@ -1,20 +1,20 @@
 include("Agent.jl")
 include("Environment.jl")
 
-function playEpisode(env::AbsEnvironment, agent::AbsAgent; verbose=false)
+function playEpisode(env::AbsEnvironment, agent::AbsAgent; verbose=false, learn=true, threshold=100000)
 	state = getInitialState(env)
 	totalRewards = 0.0
 	numOfStates = 1
 
 	verbose && println("Initial State: $(state)")
 
-	while !isTerminal(state, env)
-		action = play(agent, state, env)
+	while !isTerminal(state, env) && numOfStates < threshold
+		action = play(agent, state, env; learn=learn)
 		verbose && println("Action: $(action)")
 		state, reward = transfer(env, state, action)
 		verbose && println("State: $(state)")
 		verbose && println("Reward: $(reward)")
-		observe(agent, state, reward, env)
+		observe(agent, state, reward, env; learn=learn)
 		totalRewards += reward
 		numOfStates += 1
 	end

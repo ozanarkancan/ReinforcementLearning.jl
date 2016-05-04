@@ -3,8 +3,8 @@ include("Environment.jl")
 abstract AbsAgent
 
 #returns an action
-play(agent::AbsAgent, state::AbsState, env::AbsEnvironment) = error("play is unimplemented")
-observe(agent::AbsAgent, state::AbsState, reward::Float64, env::AbsEnvironment) = nothing
+play(agent::AbsAgent, state::AbsState, env::AbsEnvironment; learn=true) = error("play is unimplemented")
+observe(agent::AbsAgent, state::AbsState, reward::Float64, env::AbsEnvironment; learn=true) = nothing
 
 type RandomAgent <: AbsAgent end
 function play(agent::RandomAgent, state::AbsState, env::AbsEnvironment)
@@ -67,8 +67,64 @@ let
 		return action
 	end
 
-	function observe(agent::QLearner, state::AbsState, reward::Float64, env::AbsEnvironment)
-		action, q = maxQ(agent, state, env)
-		agent.Qtable[lastState][lastAction] = agent.Qtable[lastState][lastAction] + agent.α * (reward + agent.Ɣ * q - agent.Qtable[lastState][lastAction])
+	function observe(agent::QLearner, state::AbsState, reward::Float64, env::AbsEnvironment; learn=true)
+		if learn
+			action, q = maxQ(agent, state, env)
+			agent.Qtable[lastState][lastAction] = agent.Qtable[lastState][lastAction] + agent.α * (reward + agent.Ɣ * q - agent.Qtable[lastState][lastAction])
+		end
 	end
 end
+
+type SarsaLearner <: AbsAgent; 
+	qlearner
+	
+	function SarsaLearner(env::AbsEnvironment; Ɣ=0.9, α=0.8, ε=0.05)
+		qlearner = QLearner(env; Ɣ=Ɣ, α=α, ε=ε)
+	end
+end
+
+let
+	S = nothing
+	A = nothing
+	Sprime = nothing
+	Aprime = nothing
+	
+	global play
+	global observe
+
+	function play(agent::SarsaLearner, state::AbsState, env::AbsEnvironment; learn=true, observe=false)
+		r = rand()
+		action = nothing
+		if r < agent.ε && learn
+			actionSet = getActions(state, env)
+			action = shuffle(actionSet)[1]
+		else
+			action, q = maxQ(agent.qlearner, state, env)
+		end
+
+		if observe
+			Sprime = state
+			Aprime = action
+		else
+			if S == nothing
+				S = state
+				A = action
+			else
+				action = learn ? A : action
+			end
+		end
+		return action
+	end
+
+	function observe(agent::SarsaLearner, state::AbsState, reward::Float64, env::AbsEnvironment; learn=true)
+		if learn
+			action = play(agent, state, env; observe=true)
+			agent.qlearner.Qtable[S][A] = agent.Qtable[S][A] + 
+				agent.α * (reward + agent.Ɣ * agent.qlearner.Qtable[Sprime][Aprime] - agent.qlearner.Qtable[S][A])
+
+			S = Sprime
+			A = Aprime
+		end
+	end
+end
+

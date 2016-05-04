@@ -223,10 +223,13 @@ function main()
 
 	==#
 	
-	agent = QLearner(env)
+	#agent = QLearner(env)
+	agent = SarsaLearner(env)
 
 	numberOfEpochs = 50
 	rewards = Any[]
+
+	println("Training")
 	
 	@time for i=1:numberOfEpochs
 		#totalRewards, numberOfStates = playEpisode(env, agent; verbose = true)
@@ -234,7 +237,15 @@ function main()
 		push!(rewards, totalRewards)
 		println("Epoch: $i, totalReward: $totalRewards")
 	end
-	
+
+	println("Testing")
+	@time for i=1:numberOfEpochs
+		#totalRewards, numberOfStates = playEpisode(env, agent; verbose = true)
+		totalRewards, numberOfStates = playEpisode(env, agent; learn=false)
+		push!(rewards, totalRewards)
+		println("Epoch: $i, totalReward: $totalRewards")
+	end
+
 end
 
 main()
