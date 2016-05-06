@@ -189,7 +189,7 @@ function transfer(env::MazeEnv, state::MazeState, action::MazeAction)
 end
 
 function main()
-	env = MazeEnv((5,5))
+	env = MazeEnv((2,2))
 	print_maze(env.maze)
 	
 	#==
@@ -248,4 +248,4 @@ function main()
 
 end
 
-main()
+#main()
