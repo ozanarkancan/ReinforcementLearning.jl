@@ -58,6 +58,7 @@ function key_callback(window, key, scancode, action, mode)
 		h = 2.0 / hm
 
 		if key == GLFW.KEY_A && action == GLFW.PRESS
+			orientation = orientation == 1 ? 4 : orientation - 1
 			for i=1:30
 				push!(signal, rotationmatrix_z(deg2rad(3)))
 				Reactive.run_till_now()
@@ -69,8 +70,10 @@ function key_callback(window, key, scancode, action, mode)
 			end
 
 		elseif key == GLFW.KEY_M && action == GLFW.PRESS
+			wdx = orientation == 2 ? 1.0 : orientation == 4 ? -1.0 : 0.0
+			hdx = orientation == 1 ? 1.0 : orientation == 3 ? -1.0 : 0.0
 			for i=1:30
-				a_ro[:view] = translationmatrix(Vec{3, Float32}((w/30.0,0.0,0.0f0))) * a_ro[:view]
+				a_ro[:view] = translationmatrix(Vec{3, Float32}((w/30.0 * wdx, h/30.0 * hdx,0.0f0))) * a_ro[:view]
 				glClear(GL_COLOR_BUFFER_BIT)
 				render(ro)
 				render(a_ro)
