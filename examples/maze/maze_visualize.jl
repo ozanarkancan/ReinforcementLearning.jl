@@ -23,10 +23,24 @@ function agent_model(start, width, height, pos, cols, elms)
 	push!(pos, (start[1] + width*0.25, start[2] - height*0.75))
 
 	push!(cols, (1.0, 0.0, 0.0))
-	push!(cols, (0.0, 1.0, 0.0))
-	push!(cols, (0.0, 1.0, 0.0))
+	push!(cols, (0.0, 0.0, 1.0))
+	push!(cols, (0.0, 0.0, 1.0))
 
 	push!(elms, (indx, indx+1, indx+2))
+end
+
+function paint(start, width, height, pos, cols, elms, clr)
+	indx = length(pos)
+	push!(pos, start)
+	push!(pos, (start[1] + width, start[2]))
+	push!(pos, (start[1], start[2] - height))
+	push!(pos, (start[1] + width, start[2] - height))
+	
+	push!(elms, (indx, indx+1, indx+2))
+	push!(elms, (indx+1, indx+2, indx+3))
+	
+	for i=1:4; push!(cols, clr); end
+
 end
 
 function key_callback(window, key, scancode, action, mode)
@@ -35,6 +49,7 @@ function key_callback(window, key, scancode, action, mode)
 	else
 		global env
 		global orientation
+		global signal
 		global signal
 		global ro
 		global a_ro
@@ -55,8 +70,7 @@ function key_callback(window, key, scancode, action, mode)
 
 		elseif key == GLFW.KEY_M && action == GLFW.PRESS
 			for i=1:30
-				push!(signal, translationmatrix(Vec((w/30.0,0.0,0.0))))
-				Reactive.run_till_now()
+				a_ro[:view] = translationmatrix(Vec{3, Float32}((w/30.0,0.0,0.0f0))) * a_ro[:view]
 				glClear(GL_COLOR_BUFFER_BIT)
 				render(ro)
 				render(a_ro)
@@ -69,15 +83,16 @@ function key_callback(window, key, scancode, action, mode)
 end	
 
 function main()
+
+	startpng = load("start.png")
+	checkeredpng = load("checkered.png")
+
 	wm = 10
 	hm = 10
 	global env = MazeEnv((hm,wm))
 	agent = QLearner(env)
 
 	global orientation = 1
-
-	println("Start: $(env.start)")
-	println("Goal: $(env.goal)")
 
 	window = create_glcontext("Maze Solving", resolution=(800, 600))
 
@@ -94,7 +109,9 @@ function main()
 	a_positions = Point{2, Float32}[]
 	a_clrs = Vec3f0[]
 	a_elements = Face{3, UInt32, -1}[]
-
+	
+	paint((-1, 1 - (env.start[1]-1)*h), w, h, positions, clrs, elements, (1.0, 1.0, 0.0))
+	paint((-1 + (wm - 1)*w, 1 - (env.goal[1]-1)*h), w, h, positions, clrs, elements, (0.0, 1.0, 0.0))
 	
 	agent_model((-1, 1), 2.0, 2.0, a_positions, a_clrs, a_elements)
 	
@@ -117,7 +134,7 @@ function main()
 			end
 		end
 	end
-	
+
 
 	vertex_source= vert"""
 	# version 150
@@ -149,6 +166,7 @@ function main()
 	model = rotate(0f0, Vec((0,0,1f0)))
 	view = rotate(0f0, Vec((0,0,1f0)))
 	a_model = foldp(*, rotate(0f0, Vec((0,0,1f0))), signal)
+	a_view = translationmatrix(Vec((-(wm / 2 - 0.5)*w, (hm/2 + 0.5 - env.start[1])*h , 0.0f0))) * scalematrix(Vec((1.0/wm, 1.0/hm, 1.0f0)))
 
 	#view = lookat(Vec3((1.2f0, 1.2f0, 1.2f0)), Vec3((0f0, 0f0, 0f0)), Vec3((0f0, 0f0, 1f0)))
 	#proj = perspectiveprojection(Float32, 45, 800/600, 1, 10)
@@ -167,8 +185,7 @@ function main()
 	:color=>GLBuffer(a_clrs),
 	:indexes=>indexbuffer(a_elements),
 	:model=>a_model,
-	:view=>translationmatrix(Vec((-(wm / 2 - 0.5)*w, (hm/2 + 0.5 - env.start[1])*h , 0.0))) * scalematrix(Vec((1.0/wm, 1.0/hm, 1.0f0))),
-	#:view=>scalematrix(Vec((1.0/wm, 1.0/hm, 1.0f0))),
+	:view=>a_view,
 	:proj=>proj
 	)		
 
