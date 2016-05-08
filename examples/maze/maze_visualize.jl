@@ -47,43 +47,92 @@ function key_callback(window, key, scancode, action, mode)
 	if key == GLFW.KEY_ESCAPE && action == GLFW.PRESS
 		GLFW.SetWindowShouldClose(window, true)
 	else
-		global env
-		global orientation
-		global signal
-		global signal
-		global ro
-		global a_ro
-		hm, wm,_ = size(env.maze)
-		w = 2.0 / wm
-		h = 2.0 / hm
-
-		if key == GLFW.KEY_A && action == GLFW.PRESS
-			orientation = orientation == 1 ? 4 : orientation - 1
-			for i=1:30
-				push!(signal, rotationmatrix_z(deg2rad(3)))
-				Reactive.run_till_now()
-				glClear(GL_COLOR_BUFFER_BIT)
-				render(ro)
-				render(a_ro)
-				GLFW.SwapBuffers(window)
-				sleep(0.001)
-			end
-
+		if key == GLFW.KEY_L && action == GLFW.PRESS
+			left()
+		elseif key == GLFW.KEY_R && action == GLFW.PRESS
+			right()
 		elseif key == GLFW.KEY_M && action == GLFW.PRESS
-			wdx = orientation == 2 ? 1.0 : orientation == 4 ? -1.0 : 0.0
-			hdx = orientation == 1 ? 1.0 : orientation == 3 ? -1.0 : 0.0
-			for i=1:30
-				a_ro[:view] = translationmatrix(Vec{3, Float32}((w/30.0 * wdx, h/30.0 * hdx,0.0f0))) * a_ro[:view]
-				glClear(GL_COLOR_BUFFER_BIT)
-				render(ro)
-				render(a_ro)
-				GLFW.SwapBuffers(window)
-				sleep(0.001)
-			end
-
+			move()
+		elseif key == GLFW.KEY_S && action == GLFW.PRESS
+			reset()
 		end
 	end
 end	
+
+function reset()
+	global orientation
+	global ro
+	global a_ro
+	global signal
+	global window
+	global a_model
+	global env
+	hm, wm,_ = size(env.maze)
+	w = 2.0 / wm
+	h = 2.0 / hm
+
+	a_ro[:view] = translationmatrix(Vec{3, Float32}((-(wm / 2 - 0.5)*w, (hm/2 + 0.5 - env.start[1])*h , 0.0f0))) * scalematrix(Vec{3, Float32}((1.0/wm, 1.0/hm, 1.0f0)))
+
+	push!(signal, rotationmatrix_z(deg2rad((orientation-1)*90)))
+	orientation = 1
+
+	Reactive.run_till_now()
+	glClear(GL_COLOR_BUFFER_BIT)
+	render(ro)
+	render(a_ro)
+	GLFW.SwapBuffers(window)
+	sleep(0.01)
+end
+
+function rot(pos=1.0)
+	global orientation
+	global ro
+	global a_ro
+	global signal
+	global window
+
+	if pos == 1.0
+		orientation = orientation == 1 ? 4 : orientation - 1
+	else
+		orientation = orientation == 4 ? 1 : orientation + 1
+	end
+
+	for i=1:30
+		push!(signal, rotationmatrix_z(deg2rad(3*pos)))
+		Reactive.run_till_now()
+		glClear(GL_COLOR_BUFFER_BIT)
+		render(ro)
+		render(a_ro)
+		GLFW.SwapBuffers(window)
+		sleep(0.001)
+	end
+
+end
+
+left() = rot(1.0)
+right() = rot(-1.0)
+
+function move()
+	global env
+	global orientation
+	global signal
+	global ro
+	global a_ro
+	global window
+	hm, wm,_ = size(env.maze)
+	w = 2.0 / wm
+	h = 2.0 / hm
+	wdx = orientation == 2 ? 1.0 : orientation == 4 ? -1.0 : 0.0
+	hdx = orientation == 1 ? 1.0 : orientation == 3 ? -1.0 : 0.0
+	for i=1:30
+		a_ro[:view] = translationmatrix(Vec{3, Float32}((w/30.0 * wdx, h/30.0 * hdx,0.0f0))) * a_ro[:view]
+		glClear(GL_COLOR_BUFFER_BIT)
+		render(ro)
+		render(a_ro)
+		GLFW.SwapBuffers(window)
+		sleep(0.001)
+	end
+end
 
 function main()
 
@@ -97,7 +146,7 @@ function main()
 
 	global orientation = 1
 
-	window = create_glcontext("Maze Solving", resolution=(800, 600))
+	global window = create_glcontext("Maze Solving", resolution=(800, 600))
 
 	vao = glGenVertexArrays()
 	glBindVertexArray(vao)
@@ -168,11 +217,9 @@ function main()
 	global signal = Signal(rotate(0f0, Vec((0,0,1f0))))
 	model = rotate(0f0, Vec((0,0,1f0)))
 	view = rotate(0f0, Vec((0,0,1f0)))
-	a_model = foldp(*, rotate(0f0, Vec((0,0,1f0))), signal)
+	global a_model = foldp(*, rotate(0f0, Vec((0,0,1f0))), signal)
 	a_view = translationmatrix(Vec((-(wm / 2 - 0.5)*w, (hm/2 + 0.5 - env.start[1])*h , 0.0f0))) * scalematrix(Vec((1.0/wm, 1.0/hm, 1.0f0)))
 
-	#view = lookat(Vec3((1.2f0, 1.2f0, 1.2f0)), Vec3((0f0, 0f0, 0f0)), Vec3((0f0, 0f0, 1f0)))
-	#proj = perspectiveprojection(Float32, 45, 800/600, 1, 10)
 	proj = orthographicprojection(Float32, -1.0, 1.0, -1.0, 1.0, -1.0, 1.0)
 	
 
