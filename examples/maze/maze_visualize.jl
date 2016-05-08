@@ -1,6 +1,37 @@
 include("maze.jl")
 
-using ModernGL, GeometryTypes, GLAbstraction, GLWindow, Images, FileIO, Reactive
+using ModernGL, GeometryTypes, GLAbstraction, GLWindow, Images, FileIO, Reactive, ArgParse
+
+function parse_commandline()
+	s = ArgParseSettings()
+
+	@add_arg_table s begin
+		"--epochs"
+			help = "number of epochs"
+			default = 20
+			arg_type=Int
+		"--eps"
+			help = "epsilon parameter for the random behaviour"
+			default = 0.05
+			arg_type = Float64
+		"--gamma"
+			help = "the discount factor"
+			default = 0.9
+			arg_type = Float64
+		"--alpha"
+			help = "learning step"
+			default = 0.8
+			arg_type = Float64
+		"--dims"
+			help = "dimensions of the maze"
+			nargs='+'
+			default = [3,3]
+			arg_type = Int
+
+	end
+	return parse_args(s)
+end
+
 
 function rectangle(start, width, height, pos, cols, elms)
 	indx = length(pos)
@@ -55,12 +86,22 @@ function key_callback(window, key, scancode, action, mode)
 			move()
 		elseif key == GLFW.KEY_S && action == GLFW.PRESS
 			reset()
+		elseif key == GLFW.KEY_1 && action == GLFW.PRESS
+			global speed
+			speed = speed * 0.5
+		elseif key == GLFW.KEY_2 && action == GLFW.PRESS
+			global speed
+			speed = speed * 2
+		elseif key == GLFW.KEY_S && action == GLFW.PRESS
+			global train
+			train = train ? false : true
+			
 		end
 	end
 end	
 
 function reset()
-	global orientation
+	global direction
 	global ro
 	global a_ro
 	global signal
@@ -73,8 +114,8 @@ function reset()
 
 	a_ro[:view] = translationmatrix(Vec{3, Float32}((-(wm / 2 - 0.5)*w, (hm/2 + 0.5 - env.start[1])*h , 0.0f0))) * scalematrix(Vec{3, Float32}((1.0/wm, 1.0/hm, 1.0f0)))
 
-	push!(signal, rotationmatrix_z(deg2rad((orientation-1)*90)))
-	orientation = 1
+	push!(signal, rotationmatrix_z(deg2rad((direction-1)*90)))
+	direction = 1
 
 	Reactive.run_till_now()
 	glClear(GL_COLOR_BUFFER_BIT)
@@ -85,26 +126,27 @@ function reset()
 end
 
 function rot(pos=1.0)
-	global orientation
+	global direction
 	global ro
 	global a_ro
 	global signal
 	global window
+	global speed
 
 	if pos == 1.0
-		orientation = orientation == 1 ? 4 : orientation - 1
+		direction = direction == 1 ? 4 : direction - 1
 	else
-		orientation = orientation == 4 ? 1 : orientation + 1
+		direction = direction == 4 ? 1 : direction + 1
 	end
 
-	for i=1:30
-		push!(signal, rotationmatrix_z(deg2rad(3*pos)))
+	for i=1:15
+		push!(signal, rotationmatrix_z(deg2rad(6*pos)))
 		Reactive.run_till_now()
 		glClear(GL_COLOR_BUFFER_BIT)
 		render(ro)
 		render(a_ro)
 		GLFW.SwapBuffers(window)
-		sleep(0.001)
+		sleep(speed)
 	end
 
 end
@@ -114,39 +156,39 @@ right() = rot(-1.0)
 
 function move()
 	global env
-	global orientation
+	global direction
 	global signal
 	global ro
 	global a_ro
 	global window
+	global speed
+
 	hm, wm,_ = size(env.maze)
 	w = 2.0 / wm
 	h = 2.0 / hm
-	wdx = orientation == 2 ? 1.0 : orientation == 4 ? -1.0 : 0.0
-	hdx = orientation == 1 ? 1.0 : orientation == 3 ? -1.0 : 0.0
-	for i=1:30
-		a_ro[:view] = translationmatrix(Vec{3, Float32}((w/30.0 * wdx, h/30.0 * hdx,0.0f0))) * a_ro[:view]
+	wdx = direction == 2 ? 1.0 : direction == 4 ? -1.0 : 0.0
+	hdx = direction == 1 ? 1.0 : direction == 3 ? -1.0 : 0.0
+	for i=1:15
+		a_ro[:view] = translationmatrix(Vec{3, Float32}((w/15.0 * wdx, h/15.0 * hdx,0.0f0))) * a_ro[:view]
 		glClear(GL_COLOR_BUFFER_BIT)
 		render(ro)
 		render(a_ro)
 		GLFW.SwapBuffers(window)
-		sleep(0.001)
+		sleep(speed)
 	end
 end
 
 function main()
-
-	startpng = load("start.png")
-	checkeredpng = load("checkered.png")
-
-	wm = 10
-	hm = 10
+	args = parse_commandline()
+	hm, wm = args["dims"]
 	global env = MazeEnv((hm,wm))
-	agent = QLearner(env)
+	agent = QLearner(env;ε=args["eps"], α=args["alpha"], Ɣ=args["gamma"])
 
-	global orientation = 1
+	global direction = 1
+	global train = true
 
 	global window = create_glcontext("Maze Solving", resolution=(800, 600))
+	global speed = 0.0001
 
 	vao = glGenVertexArrays()
 	glBindVertexArray(vao)
@@ -246,11 +288,39 @@ function main()
 	GLFW.SetKeyCallback(window, key_callback)
 
 	glClearColor(1.0,1.0,1.0,1.0)
+	state = getInitialState(env)
+	totalRewards = 0.0
+	numOfStates = 1
+	epoch = 1
+	numOfEpochs = args["epochs"]
 
 	while !GLFW.WindowShouldClose(window)
 		glClear(GL_COLOR_BUFFER_BIT)
-		render(ro)
-		render(a_ro)
+		if isTerminal(state, env)
+			println("Epoch: $epoch, totalReward: $totalRewards")
+			state = getInitialState(env)
+			totalRewards = 0.0
+			numOfStates = 1
+			epoch += 1
+			if epoch > numOfEpochs
+				GLFW.SetWindowShouldClose(window, true)
+			end
+			reset()
+		end
+		action = play(agent, state, env; learn=train)
+		if action == MazeAction(MOVE)
+			move()
+		elseif action == MazeAction(LEFT)
+			left()
+		else
+			right()
+		end
+		state, reward = transfer(env, state, action)
+		observe(agent, state, reward, env; learn=train)
+		totalRewards += reward
+		numOfStates += 1	
+		#render(ro)
+		#render(a_ro)
 		GLFW.SwapBuffers(window)
 		GLFW.PollEvents()
 	end			
