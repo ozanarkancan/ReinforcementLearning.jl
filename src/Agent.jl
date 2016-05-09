@@ -1,4 +1,5 @@
 include("Environment.jl")
+include("DP.jl")
 
 abstract AbsAgent
 
@@ -128,3 +129,8 @@ let
 	end
 end
 
+type PolicyAgent <: AbsAgent
+	policy::Policy
+end
+
+play(agent::PolicyAgent, state::AbsState, env::AbsEnvironment; learn=true) = agent.policy.mapping[state][1][1]
