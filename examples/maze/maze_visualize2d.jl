@@ -71,7 +71,6 @@ function paint(start, width, height, pos, cols, elms, clr)
 	push!(elms, (indx+1, indx+2, indx+3))
 	
 	for i=1:4; push!(cols, clr); end
-
 end
 
 function key_callback(window, key, scancode, action, mode)
@@ -206,7 +205,7 @@ function main()
 	
 	paint((-1, 1 - (env.start[1]-1)*h), w, h, positions, clrs, elements, (1.0, 1.0, 0.0))
 	paint((-1 + (wm - 1)*w, 1 - (env.goal[1]-1)*h), w, h, positions, clrs, elements, (0.0, 1.0, 0.0))
-	
+
 	agent_model((-1, 1), 2.0, 2.0, a_positions, a_clrs, a_elements)
 	
 	for i=1:wm
@@ -228,7 +227,6 @@ function main()
 			end
 		end
 	end
-
 
 	vertex_source= vert"""
 	# version 150
@@ -255,6 +253,7 @@ function main()
 	outColor = vec4(Color, 1.0);
 	}
 	"""
+
 	
 	global signal = Signal(rotate(0f0, Vec((0,0,1f0))))
 	model = rotate(0f0, Vec((0,0,1f0)))
@@ -308,19 +307,68 @@ function main()
 			reset()
 		end
 		action = play(agent, state, env; learn=train)
-		if action == MazeAction(MOVE)
-			move()
-		elseif action == MazeAction(LEFT)
-			left()
+		if action == MazeAction(UP)
+			if direction == 1
+				move()
+			elseif direction == 2
+				left()
+				move()
+			elseif direction == 3
+				right()
+				right()
+				move()
+			else
+				right()
+				move()
+			end
+		elseif action == MazeAction(RIGHT)
+			if direction == 1
+				right()
+				move()
+			elseif direction == 2
+				move()
+			elseif direction == 3
+				left()
+				move()
+			else
+				left()
+				left()
+				move()
+			end
+		elseif action == MazeAction(DOWN)
+			if direction == 1
+				right()
+				right()
+				move()
+			elseif direction == 2
+				right()
+				move()
+			elseif direction == 3
+				move()
+			else
+				left()
+				move()
+			end
+
 		else
-			right()
+			if direction == 1
+				left()
+				move()
+			elseif direction == 2
+				right()
+				right()
+				move()
+			elseif direction == 3
+				right()
+				move()
+			else
+				move()
+			end
 		end
 		state, reward = transfer(env, state, action)
 		observe(agent, state, reward, env; learn=train)
 		totalRewards += reward
 		numOfStates += 1	
-		#render(ro)
-		#render(a_ro)
 		GLFW.SwapBuffers(window)
 		GLFW.PollEvents()
 	end			

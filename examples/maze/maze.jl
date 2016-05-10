@@ -3,13 +3,47 @@ import Base.==
 import Base.isequal
 import Base.hash
 
+using ArgParse
+
+function parse_commandline()
+	s = ArgParseSettings()
+
+	@add_arg_table s begin
+		"--epochs"
+			help = "number of epochs"
+			default = 20
+			arg_type=Int
+		"--eps"
+			help = "epsilon parameter for the random behaviour"
+			default = 0.05
+			arg_type = Float64
+		"--gamma"
+			help = "the discount factor"
+			default = 0.9
+			arg_type = Float64
+		"--alpha"
+			help = "learning step"
+			default = 0.8
+			arg_type = Float64
+		"--dims"
+			help = "dimensions of the maze"
+			nargs='+'
+			default = [3,3]
+			arg_type = Int
+		"--agent"
+			help = "Agent type"
+			default = "Q"
+	end
+	return parse_args(s)
+end
+
 #recursive backtracking algorithm
 function generate_maze(h = 4, w = 4)
 	maze = zeros(h, w, 4)
 	unvisited = ones(h, w)
 
 	function neighbours(r,c)
-		ns = Any[]
+		ns = Array{Tuple{Int, Int, Int}, 1}()
 		for i=1:4
 			if i == 1 && (r - 1) >= 1 && unvisited[r-1, c] == 1
 				push!(ns, (r-1, c, 1))
@@ -30,7 +64,7 @@ function generate_maze(h = 4, w = 4)
 	c = start % w
 	c = c == 0 ? w : c
 
-	stack = Any[]
+	stack = Array{Tuple{Int, Int}, 1}()
 	curr = (r, c)
 	unvisited[r,c] = 0
 	while countnz(unvisited) != 0
@@ -98,20 +132,19 @@ print_maze(maze)
 
 type MazeState <: AbsState
 	loc
-	orientation
 end
 
-@enum Action MOVE LEFT RIGHT
+@enum ActionEnum UP RIGHT DOWN LEFT
 
-type MazeAction <: AbsAction; act::Action; end
+type MazeAction <: AbsAction; act::ActionEnum; end
 
 ==(lhs::MazeAction, rhs::MazeAction) = lhs.act == rhs.act
 isequal(lhs::MazeAction, rhs::MazeAction) = lhs.act == rhs.act
 hash(a::MazeAction) = hash(a.act)
 
-==(lhs::MazeState, rhs::MazeState) = (lhs.loc[1] == rhs.loc[1] && lhs.loc[2] == rhs.loc[2] && lhs.orientation == rhs.orientation)
+==(lhs::MazeState, rhs::MazeState) = (lhs.loc[1] == rhs.loc[1] && lhs.loc[2] == rhs.loc[2])
 isequal(lhs::MazeState, rhs::MazeState) = ==(lhs, rhs)
-hash(s::MazeState) = hash([s.loc; s.orientation])
+hash(s::MazeState) = hash(s.loc)
 
 type MazeEnv <: AbsEnvironment
 	dims
@@ -123,16 +156,14 @@ type MazeEnv <: AbsEnvironment
 	MazeEnv() = Maze((5, 5))
 end
 
-getInitialState(env::MazeEnv) = MazeState(env.start, 1)
-getActions(state::MazeState, env::MazeEnv) = [MazeAction(MOVE), MazeAction(LEFT), MazeAction(RIGHT)]
+getInitialState(env::MazeEnv) = MazeState(env.start)
+getActions(state::MazeState, env::MazeEnv) = [MazeAction(UP), MazeAction(RIGHT), MazeAction(DOWN), MazeAction(LEFT)]
 
 function getAllStates(env::MazeEnv)
-	states = MazeState[MazeState((0,0), 1), MazeState((0,0), 2), MazeState((0,0), 3), MazeState((0,0), 4)]
+	states = MazeState[MazeState((0,0))]
 	for i=1:env.dims[1]
 		for j=1:env.dims[2]
-			for a=1:4
-				push!(states, MazeState((i, j), a))
-			end
+			push!(states, MazeState((i, j)))
 		end
 	end
 	return states
@@ -151,101 +182,148 @@ end
 
 function transfer(env::MazeEnv, state::MazeState, action::MazeAction)
 	loc = state.loc
-	orientation = state.orientation
 	reward = -1.0
 	next_state = nothing
 
 	if (loc[1] == 0 && loc[2] == 0)
-		return (state, -1000.0, 1.0)
+		return (state, -1000, 1.0)
+	elseif (loc[1] == env.goal[1] && loc[2] == env.goal[2])
+		return (state, prod(size(env.maze)[:2])*10.0, 1.0)
 	end
 
-	if action.act == LEFT
-		orientation = orientation == 1 ? 4 : orientation - 1
-		next_state = MazeState(loc, orientation)
+	if action.act == UP
+		orientation = 1
 	elseif action.act == RIGHT
-		orientation = orientation == 4 ? 1 : orientation + 1
-		next_state = MazeState(loc, orientation)
-	else#move
-
-		if env.maze[loc[1], loc[2], orientation] == 0
-			reward = -500.0
-			next_state = MazeState((0, 0), orientation)
+		orientation = 2
+	elseif action.act == DOWN
+		orientation = 3
+	else
+		orientation = 4
+	end
+	
+	if env.maze[loc[1], loc[2], orientation] == 0
+		reward = -1000.0
+		next_state = MazeState((0,0))
+	else
+		if orientation == 1
+			loc = (loc[1] - 1, loc[2])
+		elseif orientation == 2
+			loc = (loc[1], loc[2] + 1)
+		elseif orientation == 3
+			loc = (loc[1] + 1, loc[2])
 		else
-			if orientation == 1
-				loc = (loc[1] -1, loc[2])
-			elseif orientation == 2
-				loc = (loc[1], loc[2] + 1)
-			elseif orientation == 3
-				loc = (loc[1] + 1, loc[2])
-			else
-				loc = (loc[1], loc[2] - 1)
-			end
-
-			next_state = MazeState(loc, orientation)
-			reward = (loc[1] == env.goal[1] && loc[2] == env.goal[2]) ? 1000.0 : -1.0
+			loc = (loc[1], loc[2] - 1)
 		end
+
+		next_state = MazeState(loc)
+		reward = (loc[1] == env.goal[1] && loc[2] == env.goal[2]) ? prod(size(env.maze)[:2])*10.0 : -1.0
 	end
 	return (next_state, reward, 1.0)
 end
 
 function main()
-	env = MazeEnv((4,4))
+	args = parse_commandline()
+	hm, wm = args["dims"]
+	env = MazeEnv((hm, wm))
+	
 	print_maze(env.maze)
-	
-	#==
-	ss = getAllStates(env)
-
-	@time policy, V = synchronous_value_iteration(env; Ɣ=0.9, verbose=true)
-	
 	println("Start: $(env.start)")
 	println("Goal: $(env.goal)")
+	
+	ss = getAllStates(env)
 
 	println("Value Iteration")
+	@time policy, V = synchronous_value_iteration(env; Ɣ=args["gamma"], verbose=false)
+	
+	policyAgent = PolicyAgent(policy)
+	optimumReward, numberOfStates = playEpisode(env, policyAgent; threshold = prod(args["dims"]) * 2, verbose=false)
 
+	println("Optimum Reward: $optimumReward")
+
+	#=
 	for s in ss
 		println("State: $(s), Value: $(V[s]), Action: $(policy.mapping[s][1][1])")
 	end
-
-	@time policy, V = policy_iteration(env::AbsEnvironment; Ɣ=0.9, verbose=false)
-
+	=#
+	
 	println("Policy Iteration")
+	@time policy, V = policy_iteration(env::AbsEnvironment; Ɣ=args["gamma"], verbose=false)
 	
+	policyAgent = PolicyAgent(policy)
+	optimumReward, numberOfStates = playEpisode(env, policyAgent; threshold = prod(args["dims"]) * 2)
+
+	println("Optimum Reward: $optimumReward")
+
+	#=
 	for s in ss
 		println("State: $(s), Value: $(V[s]), Action: $(policy.mapping[s][1][1])")
 	end
-	
+	=#
+
 	println("Gauss-Seidel Value Iteration")
-	@time policy, V = gauss_seidel_value_iteration(env; Ɣ=0.9, verbose=true)
-
+	@time policy, V = gauss_seidel_value_iteration(env; Ɣ=args["gamma"], verbose=false)
+	
+	#=
 	for s in ss
 		println("State: $(s), Value: $(V[s]), Action: $(policy.mapping[s][1][1])")
 	end
+	=#
 
-	==#
-	
-	#agent = QLearner(env)
-	agent = SarsaLearner(env)
+	policyAgent = PolicyAgent(policy)
+	optimumReward, numberOfStates = playEpisode(env, policyAgent; threshold = prod(args["dims"]) * 2)
 
-	numberOfEpochs = 50
+	println("Optimum Reward: $optimumReward")
+
+	agent = QLearner(env;ε=args["eps"], α=args["alpha"], Ɣ=args["gamma"])
+
+	numberOfEpochs = args["epochs"]
 	rewards = Any[]
 
-	println("Training")
+	println("Q Learning")
 	
-	@time for i=1:numberOfEpochs
-		#totalRewards, numberOfStates = playEpisode(env, agent; verbose = true)
-		totalRewards, numberOfStates = playEpisode(env, agent)
-		push!(rewards, totalRewards)
-		println("Epoch: $i, totalReward: $totalRewards")
-	end
+	totalRewards = 0.0
+	threshold = optimumReward - (2 * prod(args["dims"]) * args["eps"])
 
-	println("Testing")
-	@time for i=1:numberOfEpochs
-		#totalRewards, numberOfStates = playEpisode(env, agent; verbose = true)
-		totalRewards, numberOfStates = playEpisode(env, agent; learn=false)
-		push!(rewards, totalRewards)
-		println("Epoch: $i, totalReward: $totalRewards")
+	@time while totalRewards != optimumReward
+		while totalRewards < threshold
+			totalRewards, numberOfStates = playEpisode(env, agent)
+			push!(rewards, totalRewards)
+		end
+		totalRewards, numberOfStates = playEpisode(env, agent; learn=false, threshold = prod(args["dims"]) * 2)
 	end
+	#=
+	for i=1:length(rewards)
+		println("Epoch: $i, totalReward: $(rewards[i])")
+	end
+	=#
 
+	totalRewards, numberOfStates = playEpisode(env, agent; learn=false, threshold = prod(args["dims"]) * 2)
+	println("After training: $totalRewards, #states: $numberOfStates")
+
+	agent = SarsaLearner(env;ε=args["eps"], α=args["alpha"], Ɣ=args["gamma"])
+
+	numberOfEpochs = args["epochs"]
+	rewards = Any[]
+
+	println("Sarsa")
+	
+	totalRewards = 0.0
+	threshold = optimumReward - (2 * prod(args["dims"]) * args["eps"])
+
+	@time while totalRewards != optimumReward
+		while totalRewards < threshold
+			totalRewards, numberOfStates = playEpisode(env, agent)
+			push!(rewards, totalRewards)
+		end
+		totalRewards, numberOfStates = playEpisode(env, agent; learn=false, threshold = prod(args["dims"]) * 2)
+	end
+	#=
+	for i=1:length(rewards)
+		println("Epoch: $i, totalReward: $(rewards[i])")
+	end
+	=#
+	totalRewards, numberOfStates = playEpisode(env, agent; learn=false, threshold = prod(args["dims"]) * 2)
+	println("After training: $totalRewards, #states: $numberOfStates")
 end
 
 #main()

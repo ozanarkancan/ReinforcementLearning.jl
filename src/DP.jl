@@ -12,20 +12,23 @@ function iterative_policy_evaluation(env::AbsEnvironment, policy::Policy; Ɣ=0.9
 	states = getAllStates(env)
 	if V == nothing
 		V = Dict{AbsState, Float64}()
-		for s in states; V[s] = 0; end
+		for s in states; V[s] = rand(0:100); end
 	end
 	delta = 1.0
-	threshold = 1e-7
+	
+	eps = 1e-3
+	threshold = Ɣ < 1.0 ? eps : eps * (1 - Ɣ) / (2*Ɣ)
+
 	iteration = 0
 
 	while delta > threshold
 		delta = 0.0
 		iteration += 1
-		for s in states
+		@inbounds for s in states
 			v = V[s]
 			total = 0.0
-			for (a,p) in actionsAndProbs(policy, s)
-				for (sprime, r, pp) in getSuccessors(s, a, env)
+			@inbounds for (a,p) in actionsAndProbs(policy, s)
+				@inbounds for (sprime, r, pp) in getSuccessors(s, a, env)
 					total += p * pp * (r + Ɣ * V[sprime])
 				end
 			end
@@ -51,7 +54,7 @@ function policy_iteration(env::AbsEnvironment; Ɣ=0.9, verbose=false)
 	policy = Policy()
 	
 	for s in states
-		V[s] = rand(-5:5)
+		V[s] = rand(0:100)
 		actionSet = getActions(s, env)
 		a = shuffle(collect(actionSet))[1]
 		policy.mapping[s] = [(a, 1.0)]#action & probability, i.e. deterministic policy
@@ -61,7 +64,7 @@ function policy_iteration(env::AbsEnvironment; Ɣ=0.9, verbose=false)
 	iteration = 1
 	while !policyStable
 		### POLICY EVALUATION ###
-		iterative_policy_evaluation(env, policy; Ɣ=Ɣ, V=V)
+		iterative_policy_evaluation(env, policy; Ɣ=Ɣ, V=V, verbose=verbose)
 
 		### GREEDY POLICY IMPROVEMENT ###
 		policyStable = true
@@ -69,7 +72,7 @@ function policy_iteration(env::AbsEnvironment; Ɣ=0.9, verbose=false)
 		iteration += 1
 		for s in states
 			aa = policy.mapping[s][1][1]
-			m = -100000000.0
+			m = -1e35
 			verbose && println("Before Update - State: $(s), Action: $(aa)")
 			for a in getActions(s, env)
 				total = 0.0
@@ -88,6 +91,7 @@ function policy_iteration(env::AbsEnvironment; Ɣ=0.9, verbose=false)
 			verbose && println("After Update - State: $(s), Action: $(policy.mapping[s][1][1])")
 		end
 	end
+	println("Number of iterations: $iteration")
 	policy, V
 end
 
@@ -95,11 +99,12 @@ function synchronous_value_iteration(env::AbsEnvironment; Ɣ=0.9, verbose=false)
 	#Initialize V
 	V = Dict{AbsState, Float64}()
 	states = getAllStates(env)
-	for s in states; V[s] = rand(-5:5); end
+	for s in states; V[s] = rand(0:100); end
 
 	#Value Iteration
 	delta = 1.0
-	threshold = 1e-7 * (1 - Ɣ) / (2 * Ɣ)
+	eps = 1e-3
+	threshold = Ɣ < 1.0 ? eps : eps * (1 - Ɣ) / (2*Ɣ)
 	iteration = 0
 
 	while delta > threshold
@@ -108,7 +113,7 @@ function synchronous_value_iteration(env::AbsEnvironment; Ɣ=0.9, verbose=false)
 		copyV = copy(V)
 		for s in states
 			v = V[s]
-			m = -100000000.0
+			m = -1e35
 			for a in getActions(s, env)
 				total = 0.0
 				for (sprime, r, pp) in getSuccessors(s, a, env)
@@ -117,9 +122,9 @@ function synchronous_value_iteration(env::AbsEnvironment; Ɣ=0.9, verbose=false)
 
 				if total > m
 					m = total
-					copyV[s] = total
 				end
 			end
+			copyV[s] = m
 			verbose && println("State: $(s), v: $(v), V: $(copyV[s])")
 			delta = max(delta, abs(v - copyV[s]))
 			verbose && println("Delta: $(delta)\n")
@@ -127,12 +132,12 @@ function synchronous_value_iteration(env::AbsEnvironment; Ɣ=0.9, verbose=false)
 		for s in states; V[s] = copyV[s]; end
 	end
 
-	verbose && println("Number of iterations: $(iteration)")
+	println("Number of iterations: $(iteration)")
 
 	#Deterministic Policy
 	policy = Policy()
 	for s in states
-		m = -100000000.0
+		m = -1e35
 		for a in getActions(s, env)
 			total = 0.0
 			for (sprime, r, pp) in getSuccessors(s, a, env)
@@ -151,11 +156,12 @@ function gauss_seidel_value_iteration(env::AbsEnvironment; Ɣ=0.9, verbose=false
 	#Initialize V
 	V = Dict{AbsState, Float64}()
 	states = getAllStates(env)
-	for s in states; V[s] = rand(-5:5); end
+	for s in states; V[s] = rand(0:100); end
 
 	#Value Iteration
 	delta = 1.0
-	threshold = 1e-7 * (1 - Ɣ) / (2 * Ɣ)
+	eps = 1e-3
+	threshold = Ɣ < 1.0 ? eps : eps * (1 - Ɣ) / (2*Ɣ)
 	iteration = 0
 
 	while delta > threshold
@@ -189,7 +195,7 @@ function gauss_seidel_value_iteration(env::AbsEnvironment; Ɣ=0.9, verbose=false
 		for s in states; V[s] = copyV[s]; end
 	end
 
-	verbose && println("Number of iterations: $(iteration)")
+	println("Number of iterations: $(iteration)")
 
 	#Deterministic Policy
 	policy = Policy()
