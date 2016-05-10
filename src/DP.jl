@@ -16,7 +16,7 @@ function iterative_policy_evaluation(env::AbsEnvironment, policy::Policy; Ɣ=0.9
 	end
 	delta = 1.0
 	
-	eps = 1e-3
+	eps = 1e-5
 	threshold = Ɣ < 1.0 ? eps : eps * (1 - Ɣ) / (2*Ɣ)
 
 	iteration = 0
@@ -103,7 +103,7 @@ function synchronous_value_iteration(env::AbsEnvironment; Ɣ=0.9, verbose=false)
 
 	#Value Iteration
 	delta = 1.0
-	eps = 1e-3
+	eps = 1e-5
 	threshold = Ɣ < 1.0 ? eps : eps * (1 - Ɣ) / (2*Ɣ)
 	iteration = 0
 
@@ -160,7 +160,7 @@ function gauss_seidel_value_iteration(env::AbsEnvironment; Ɣ=0.9, verbose=false
 
 	#Value Iteration
 	delta = 1.0
-	eps = 1e-3
+	eps = 1e-5
 	threshold = Ɣ < 1.0 ? eps : eps * (1 - Ɣ) / (2*Ɣ)
 	iteration = 0
 

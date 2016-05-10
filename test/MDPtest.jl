@@ -22,8 +22,8 @@ mapping[ss[2]] = [(as[1], 1.0)]
 policy = Policy(mapping)
 
 V = iterative_policy_evaluation(mdp, policy, Ɣ=0.8; verbose=false)
-@test abs(V[ss[1]] - 5) < 1e-6 
-@test abs(V[ss[2]] - -5) < 1e-6
+@test abs(V[ss[1]] - 5) < 1e-4
+@test abs(V[ss[2]] - -5) < 1e-4
 
 policy.mapping[ss[1]] = [(as[2], 1.0)]
 
