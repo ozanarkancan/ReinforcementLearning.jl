@@ -5,7 +5,7 @@ abstract AbsAgent
 
 #returns an action
 play(agent::AbsAgent, state::AbsState, env::AbsEnvironment; learn=true) = error("play is unimplemented")
-observe(agent::AbsAgent, state::AbsState, reward::Float64, env::AbsEnvironment; learn=true) = nothing
+observe(agent::AbsAgent, state::AbsState, reward::Float64, env::AbsEnvironment; learn=true, terminal=false) = nothing
 
 type RandomAgent <: AbsAgent end
 function play(agent::RandomAgent, state::AbsState, env::AbsEnvironment)
@@ -68,7 +68,7 @@ let
 		return action
 	end
 
-	function observe(agent::QLearner, state::AbsState, reward::Float64, env::AbsEnvironment; learn=true)
+	function observe(agent::QLearner, state::AbsState, reward::Float64, env::AbsEnvironment; learn=true, terminal=false)
 		if learn
 			action, q = maxQ(agent, state, env)
 			agent.Qtable[lastState][lastAction] = agent.Qtable[lastState][lastAction] + agent.α * (reward + agent.Ɣ * q - agent.Qtable[lastState][lastAction])
@@ -117,7 +117,7 @@ let
 		return action
 	end
 
-	function observe(agent::SarsaLearner, state::AbsState, reward::Float64, env::AbsEnvironment; learn=true)
+	function observe(agent::SarsaLearner, state::AbsState, reward::Float64, env::AbsEnvironment; learn=true, terminal=false)
 		if learn
 			action = play(agent, state, env; observe=true)
 			agent.qlearner.Qtable[S][A] = agent.Qtable[S][A] + 
