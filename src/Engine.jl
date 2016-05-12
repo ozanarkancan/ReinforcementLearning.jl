@@ -1,8 +1,8 @@
 include("Agent.jl")
 include("Environment.jl")
 
-function playEpisode(env::AbsEnvironment, agent::AbsAgent; verbose=false, learn=true, threshold=100000)
-	state = getInitialState(env)
+function playEpisode(env::AbsEnvironment, agent::AbsAgent; verbose=false, randomInitial = false, learn=true, threshold=100000)
+	state = randomInitial ? rand(getAllStates(env)) : getInitialState(env)
 	totalRewards = 0.0
 	numOfStates = 1
 
@@ -14,7 +14,7 @@ function playEpisode(env::AbsEnvironment, agent::AbsAgent; verbose=false, learn=
 		state, reward = transfer(env, state, action)
 		verbose && println("State: $(state)")
 		verbose && println("Reward: $(reward)")
-		observe(agent, state, reward, env; learn=learn, terminal = (numOfStates + 1 == threshold))
+		observe(agent, state, reward, env; learn=learn, terminal = (numOfStates + 1 == threshold || isTerminal(state, env)))
 		totalRewards += reward
 		numOfStates += 1
 	end

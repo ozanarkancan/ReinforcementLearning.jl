@@ -221,6 +221,33 @@ function transfer(env::MazeEnv, state::MazeState, action::MazeAction)
 	return (next_state, reward, 1.0)
 end
 
+function agent_experiement(agent, env, optimumReward, threshold, steps, rInitial)
+	totalRewards = 0.0
+	rewards = Any[]
+	nstates = Any[]
+	
+	@time while totalRewards != optimumReward
+		while totalRewards < threshold
+			totalRewards, numberOfStates = playEpisode(env, agent; randomInitial=rInitial, threshold = steps)
+			push!(rewards, totalRewards)
+			push!(nstates, numberOfStates)
+		end
+		totalRewards, numberOfStates = playEpisode(env, agent; learn=false, threshold = steps)
+	end
+
+	println("Training took $(length(rewards)) episodes")
+	
+	#=
+	for i=1:length(rewards)
+		println("Epoch: $i, totalReward: $(rewards[i]), nsteps: $(nsteps[i])")
+	end
+	=#
+
+	totalRewards, numberOfStates = playEpisode(env, agent; learn=false, threshold = steps)
+	println("After training: $totalRewards, #states: $numberOfStates")
+
+end
+
 function main()
 	args = parse_commandline()
 	hm, wm = args["dims"]
@@ -274,56 +301,21 @@ function main()
 
 	println("Optimum Reward: $optimumReward")
 
-	agent = QLearner(env;ε=args["eps"], α=args["alpha"], Ɣ=args["gamma"])
-
-	numberOfEpochs = args["epochs"]
-	rewards = Any[]
-
-	println("Q Learning")
 	
-	totalRewards = 0.0
 	threshold = optimumReward - (2 * prod(args["dims"]) * args["eps"])
+	steps = prod(args["dims"]) * 2
 
-	@time while totalRewards != optimumReward
-		while totalRewards < threshold
-			totalRewards, numberOfStates = playEpisode(env, agent)
-			push!(rewards, totalRewards)
-		end
-		totalRewards, numberOfStates = playEpisode(env, agent; learn=false, threshold = prod(args["dims"]) * 2)
-	end
-	#=
-	for i=1:length(rewards)
-		println("Epoch: $i, totalReward: $(rewards[i])")
-	end
-	=#
+	println("\nQ Learning")
+	agentQ = QLearner(env;ε=args["eps"], α=args["alpha"], Ɣ=args["gamma"])
+	agent_experiement(agentQ, env, optimumReward, threshold, steps, false)
 
-	totalRewards, numberOfStates = playEpisode(env, agent; learn=false, threshold = prod(args["dims"]) * 2)
-	println("After training: $totalRewards, #states: $numberOfStates")
+	println("\nSarsa")
+	agentSarsa = SarsaLearner(env;ε=args["eps"], α=args["alpha"], Ɣ=args["gamma"])
+	agent_experiement(agentSarsa, env, optimumReward, threshold, steps, false)
 
-	agent = SarsaLearner(env;ε=args["eps"], α=args["alpha"], Ɣ=args["gamma"])
-
-	numberOfEpochs = args["epochs"]
-	rewards = Any[]
-
-	println("Sarsa")
-	
-	totalRewards = 0.0
-	threshold = optimumReward - (2 * prod(args["dims"]) * args["eps"])
-
-	@time while totalRewards != optimumReward
-		while totalRewards < threshold
-			totalRewards, numberOfStates = playEpisode(env, agent)
-			push!(rewards, totalRewards)
-		end
-		totalRewards, numberOfStates = playEpisode(env, agent; learn=false, threshold = prod(args["dims"]) * 2)
-	end
-	#=
-	for i=1:length(rewards)
-		println("Epoch: $i, totalReward: $(rewards[i])")
-	end
-	=#
-	totalRewards, numberOfStates = playEpisode(env, agent; learn=false, threshold = prod(args["dims"]) * 2)
-	println("After training: $totalRewards, #states: $numberOfStates")
+	println("\nMonte Carlo")
+	agentMC = MonteCarloAgent(env)
+	agent_experiement(agentMC, env, optimumReward, threshold, steps, true)
 end
 
-#main()
+main()

@@ -1,6 +1,6 @@
 module ReinforcementLearning
 
-include("Agent.jl"); export AbsAgent, play, observe, RandomAgent, QLearner, SarsaLearner, PolicyAgent
+include("Agent.jl"); export AbsAgent, play, observe, RandomAgent, QLearner, SarsaLearner, PolicyAgent, MonteCarloAgent
 include("Environment.jl"); export AbsEnvironment, AbsAction, transfer, getInitialState, getAllStates, AbsState, getActions, isTerminal, getSuccessors
 include("Engine.jl"); export playEpisode
 include("MDP.jl"); export MDP, State, Action, printmdp

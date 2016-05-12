@@ -19,6 +19,8 @@ type QLearner <: AbsAgent
 	Ɣ::Float64
 	α::Float64
 	ε::Float64
+	lastState
+	lastAction
 
 	function QLearner(env::AbsEnvironment; Ɣ=0.9, α=0.8, ε=0.05)
 		#Initialize Qtable
@@ -31,7 +33,7 @@ type QLearner <: AbsAgent
 				Qtable[s][a] = terminal ? 0 : rand(-5:5)
 			end
 		end
-		new(Qtable, Ɣ, α, ε)
+		new(Qtable, Ɣ, α, ε, nothing, nothing)
 	end
 end
 
@@ -47,84 +49,83 @@ function maxQ(agent::QLearner, state::AbsState, env::AbsEnvironment)
 	(action, m)
 end
 
-let
-	lastState = nothing
-	lastAction = nothing
-	global play
-	global observe
-
-	function play(agent::QLearner, state::AbsState, env::AbsEnvironment; learn=true)
-		r = rand()
-		action = nothing
-		if r < agent.ε && learn
-			actionSet = getActions(state, env)
-			action = shuffle(actionSet)[1]
-		else
-			action, q = maxQ(agent, state, env)
-		end
-
-		lastState = state
-		lastAction = action
-		return action
+function play(agent::QLearner, state::AbsState, env::AbsEnvironment; learn=true)
+	r = rand()
+	action = nothing
+	if r < agent.ε && learn
+		actionSet = getActions(state, env)
+		action = shuffle(actionSet)[1]
+	else
+		action, q = maxQ(agent, state, env)
 	end
 
-	function observe(agent::QLearner, state::AbsState, reward::Float64, env::AbsEnvironment; learn=true, terminal=false)
-		if learn
-			action, q = maxQ(agent, state, env)
-			agent.Qtable[lastState][lastAction] = agent.Qtable[lastState][lastAction] + agent.α * (reward + agent.Ɣ * q - agent.Qtable[lastState][lastAction])
+	agent.lastState = state
+	agent.lastAction = action
+	return action
+end
+
+function observe(agent::QLearner, state::AbsState, reward::Float64, env::AbsEnvironment; learn=true, terminal=false)
+	if learn
+		action, q = maxQ(agent, state, env)
+		agent.Qtable[agent.lastState][agent.lastAction] = agent.Qtable[agent.lastState][agent.lastAction] + 
+			agent.α * (reward + agent.Ɣ * q - agent.Qtable[agent.lastState][agent.lastAction])
+		if terminal
+			agent.lastState = nothing
+			agent.lastAction = nothing
 		end
 	end
 end
 
 type SarsaLearner <: AbsAgent; 
-	qlearner
+	qlearner::QLearner
+	S
+	A
+	Sprime
+	Aprime
 	
 	function SarsaLearner(env::AbsEnvironment; Ɣ=0.9, α=0.8, ε=0.05)
-		qlearner = QLearner(env; Ɣ=Ɣ, α=α, ε=ε)
+		ql = QLearner(env; Ɣ=Ɣ, α=α, ε=ε)
+		new(ql, nothing, nothing, nothing, nothing)
 	end
 end
 
-let
-	S = nothing
-	A = nothing
-	Sprime = nothing
-	Aprime = nothing
-	
-	global play
-	global observe
-
-	function play(agent::SarsaLearner, state::AbsState, env::AbsEnvironment; learn=true, observe=false)
-		r = rand()
-		action = nothing
-		if r < agent.ε && learn
-			actionSet = getActions(state, env)
-			action = shuffle(actionSet)[1]
-		else
-			action, q = maxQ(agent.qlearner, state, env)
-		end
-
-		if observe
-			Sprime = state
-			Aprime = action
-		else
-			if S == nothing
-				S = state
-				A = action
-			else
-				action = learn ? A : action
-			end
-		end
-		return action
+function play(agent::SarsaLearner, state::AbsState, env::AbsEnvironment; learn=true, observe=false)
+	r = rand()
+	action = nothing
+	if r < agent.qlearner.ε && learn
+		actionSet = getActions(state, env)
+		action = shuffle(actionSet)[1]
+	else
+		action, q = maxQ(agent.qlearner, state, env)
 	end
 
-	function observe(agent::SarsaLearner, state::AbsState, reward::Float64, env::AbsEnvironment; learn=true, terminal=false)
-		if learn
-			action = play(agent, state, env; observe=true)
-			agent.qlearner.Qtable[S][A] = agent.Qtable[S][A] + 
-				agent.α * (reward + agent.Ɣ * agent.qlearner.Qtable[Sprime][Aprime] - agent.qlearner.Qtable[S][A])
+	if observe
+		agent.Sprime = state
+		agent.Aprime = action
+	else
+		if agent.S == nothing
+			agent.S = state
+			agent.A = action
+		else
+			action = learn ? agent.A : action
+		end
+	end
+	return action
+end
 
-			S = Sprime
-			A = Aprime
+function observe(agent::SarsaLearner, state::AbsState, reward::Float64, env::AbsEnvironment; learn=true, terminal=false)
+	if learn
+		action = play(agent, state, env; observe=true)
+		agent.qlearner.Qtable[agent.S][agent.A] = agent.qlearner.Qtable[agent.S][agent.A] + 
+			agent.qlearner.α * (reward + agent.qlearner.Ɣ * agent.qlearner.Qtable[agent.Sprime][agent.Aprime] - agent.qlearner.Qtable[agent.S][agent.A])
+		if terminal
+			agent.S = nothing
+			agent.A = nothing
+			agent.Sprime = nothing
+			agent.Aprime = nothing
+		else
+			agent.S = agent.Sprime
+			agent.A = agent.Aprime
 		end
 	end
 end
@@ -134,3 +135,82 @@ type PolicyAgent <: AbsAgent
 end
 
 play(agent::PolicyAgent, state::AbsState, env::AbsEnvironment; learn=true) = agent.policy.mapping[state][1][1]
+
+type MonteCarloAgent <: AbsAgent
+	Qtable::Dict{AbsState, Dict{AbsAction, Float64}}
+	policy::Policy
+	returns::Dict{AbsState, Dict{AbsAction, Array{Float64, 1}}}
+	rewards::Array{Float64, 1}
+	path::Array{Tuple{AbsState, AbsAction}, 1}
+
+	function MonteCarloAgent(env::AbsEnvironment)
+		Qtable = Dict{AbsState, Dict{AbsAction, Float64}}()
+		returns = Dict{AbsState, Dict{AbsAction, Array{Float64, 1}}}()
+		policy = Policy()
+		rewards = Array{Float64, 1}()
+		path = Array{Tuple{AbsState, AbsAction}, 1}()
+
+		for s in getAllStates(env)
+			Qtable[s] = Dict{AbsAction, Float64}()
+			returns[s] = Dict{AbsAction, Array{Float64, 1}}()
+
+			terminal = isTerminal(s, env)
+			as = getActions(s, env)
+			a = shuffle(collect(as))[1]
+			policy.mapping[s] = [(a, 1.0)]
+
+			for a in as
+				returns[s][a] = Array{Float64, 1}()
+				Qtable[s][a] = rand(-5:5)
+			end
+		end
+
+		new(Qtable, policy, returns, rewards, path)
+	end
+end
+
+
+function play(agent::MonteCarloAgent, state::AbsState, env::AbsEnvironment; learn=true)
+	action = nothing
+	if length(agent.path) == 0 && learn
+		as = getActions(state, env)
+		action = shuffle(collect(as))[1]
+	else
+		action = agent.policy.mapping[state][1][1]
+	end
+	push!(agent.path, (state, action))
+	return action
+end
+
+function observe(agent::MonteCarloAgent, state::AbsState, reward::Float64, env::AbsEnvironment; learn=true, terminal=false)
+	if learn
+		push!(agent.rewards, reward)
+
+		if terminal
+			visited = Set{Tuple{AbsState, AbsAction}}()
+			g = sum(agent.rewards)
+			for t in agent.path
+				if ! (t in visited)
+					push!(agent.returns[t[1]][t[2]], g)
+					agent.Qtable[t[1]][t[2]] = mean(agent.returns[t[1]][t[2]])
+				end
+			end
+
+			#update the policy
+			for t in agent.path
+				m = -1e32
+				action = nothing
+				for a in getActions(t[1], env)
+					if agent.Qtable[t[1]][a] > m
+						m = agent.Qtable[t[1]][a]
+						action = a
+					end
+				end
+				agent.policy.mapping[t[1]] = [(action, 1.0)]
+			end
+
+			agent.rewards = Array{Float64, 1}()
+			agent.path = Array{Tuple{AbsState, AbsAction}, 1}()
+		end
+	end
+end
