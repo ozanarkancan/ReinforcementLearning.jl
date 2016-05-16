@@ -14,7 +14,7 @@ hash(a::Action) = hash(a.id)
 type MDP <: AbsEnvironment
 	ns#number of states
 	na#number of actions
-	graph#state + action ->  [state, reward, prob]
+	graph::Dict{State, Dict{Action,Array{Tuple{State, Float64, Float64}}}}#state + action ->  [state, reward, prob]
 	MDP(ns, na, graph) = new(ns, na, graph)
 	function MDP(ns=3, na=3)
 		states = [State(i) for i in 1:ns]

@@ -186,9 +186,9 @@ function transfer(env::MazeEnv, state::MazeState, action::MazeAction)
 	next_state = nothing
 
 	if (loc[1] == 0 && loc[2] == 0)
-		return (state, -1000, 1.0)
+		return (state, -10.0 * prod(size(env.maze)[1:2]), 1.0)
 	elseif (loc[1] == env.goal[1] && loc[2] == env.goal[2])
-		return (state, prod(size(env.maze)[:2])*10.0, 1.0)
+		return (state, prod(size(env.maze)[1:2])*10.0, 1.0)
 	end
 
 	if action.act == UP
@@ -202,7 +202,7 @@ function transfer(env::MazeEnv, state::MazeState, action::MazeAction)
 	end
 	
 	if env.maze[loc[1], loc[2], orientation] == 0
-		reward = -1000.0
+		reward = -10.0 * prod(size(env.maze)[1:2])
 		next_state = MazeState((0,0))
 	else
 		if orientation == 1
@@ -216,7 +216,7 @@ function transfer(env::MazeEnv, state::MazeState, action::MazeAction)
 		end
 
 		next_state = MazeState(loc)
-		reward = (loc[1] == env.goal[1] && loc[2] == env.goal[2]) ? prod(size(env.maze)[:2])*10.0 : -1.0
+		reward = (loc[1] == env.goal[1] && loc[2] == env.goal[2]) ? prod(size(env.maze)[1:2])*10.0 : -1.0
 	end
 	return (next_state, reward, 1.0)
 end
@@ -304,7 +304,8 @@ function main()
 	
 	threshold = optimumReward - (2 * prod(args["dims"]) * args["eps"])
 	steps = prod(args["dims"]) * 2
-
+	
+	#=
 	println("\nQ Learning")
 	agentQ = QLearner(env;ε=args["eps"], α=args["alpha"], Ɣ=args["gamma"])
 	agent_experiement(agentQ, env, optimumReward, threshold, steps, false)
@@ -312,10 +313,13 @@ function main()
 	println("\nSarsa")
 	agentSarsa = SarsaLearner(env;ε=args["eps"], α=args["alpha"], Ɣ=args["gamma"])
 	agent_experiement(agentSarsa, env, optimumReward, threshold, steps, false)
+	=#
 
+	#=
 	println("\nMonte Carlo")
 	agentMC = MonteCarloAgent(env)
 	agent_experiement(agentMC, env, optimumReward, threshold, steps, true)
+	=#
 end
 
 main()
