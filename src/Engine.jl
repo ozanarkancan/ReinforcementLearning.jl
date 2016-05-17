@@ -1,6 +1,3 @@
-include("Agent.jl")
-include("Environment.jl")
-
 function playEpisode(env::AbsEnvironment, agent::AbsAgent; verbose=false, randomInitial = false, learn=true, threshold=100000)
 	state = randomInitial ? rand(getAllStates(env)) : getInitialState(env)
 	totalRewards = 0.0

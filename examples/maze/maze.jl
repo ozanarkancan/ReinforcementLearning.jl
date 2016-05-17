@@ -305,7 +305,7 @@ function main()
 	threshold = optimumReward - (2 * prod(args["dims"]) * args["eps"])
 	steps = prod(args["dims"]) * 2
 	
-	#=
+	
 	println("\nQ Learning")
 	agentQ = QLearner(env;ε=args["eps"], α=args["alpha"], Ɣ=args["gamma"])
 	agent_experiement(agentQ, env, optimumReward, threshold, steps, false)
@@ -313,13 +313,10 @@ function main()
 	println("\nSarsa")
 	agentSarsa = SarsaLearner(env;ε=args["eps"], α=args["alpha"], Ɣ=args["gamma"])
 	agent_experiement(agentSarsa, env, optimumReward, threshold, steps, false)
-	=#
-
-	#=
+	
 	println("\nMonte Carlo")
 	agentMC = MonteCarloAgent(env)
 	agent_experiement(agentMC, env, optimumReward, threshold, steps, true)
-	=#
 end
 
 main()
