@@ -127,6 +127,77 @@ function observe(agent::SarsaLearner, state::AbsState, reward::Float64, env::Abs
 	end
 end
 
+type SarsaLambdaLearner <: AbsAgent; 
+	qlearner::QLearner
+	E::Dict{Tuple{AbsState, AbsAction}, Float64}
+	S
+	A
+	Sprime
+	Aprime
+	
+	function SarsaLearner(env::AbsEnvironment; Ɣ=0.9, α=0.8, ε=0.05)
+		ql = QLearner(env; Ɣ=Ɣ, α=α, ε=ε)
+		E = Dict{Tuple{AbsState, AbsAction}, Float64}()
+		for s in getAllStates(env)
+			for a in getActions(s, env)
+				E[(s, a)] = 0.0
+			end
+		end
+
+		new(ql, E, nothing, nothing, nothing, nothing)
+	end
+end
+
+function play(agent::SarsaLambdaLearner, state::AbsState, env::AbsEnvironment; learn=true, observe=false)
+	r = rand()
+	action = nothing
+	if r < agent.qlearner.ε && learn
+		actionSet = getActions(state, env)
+		action = shuffle(actionSet)[1]
+	else
+		action, q = maxQ(agent.qlearner, state, env)
+	end
+
+	if observe
+		agent.Sprime = state
+		agent.Aprime = action
+	else
+		if agent.S == nothing
+			agent.S = state
+			agent.A = action
+		else
+			action = learn ? agent.A : action
+		end
+	end
+	return action
+end
+
+function observe(agent::SarsaLambdaLearner, state::AbsState, reward::Float64, env::AbsEnvironment; learn=true, terminal=false)
+	if learn
+		action = play(agent, state, env; observe=true)
+		delta = reward + agent.qlearner.Ɣ * agent.qlearner.Qtable[agent.Sprime][agent.Aprime] - agent.qlearner.Qtable[agent.S][agent.A]
+		E[(agent.S, agent.A)] = E[(agent.S, agent.A)] + 1
+		agent.qlearner.Qtable[agent.S][agent.A] = agent.qlearner.Qtable[agent.S][agent.A] + 
+			agent.qlearner.α * (reward + agent.qlearner.Ɣ * agent.qlearner.Qtable[agent.Sprime][agent.Aprime] - agent.qlearner.Qtable[agent.S][agent.A])
+		if terminal
+			agent.S = nothing
+			agent.A = nothing
+			agent.Sprime = nothing
+			agent.Aprime = nothing
+			
+			for s in getAllStates(env)
+				for a in getActions(s, env)
+					E[(s, a)] = 0.0
+				end
+			end
+
+		else
+			agent.S = agent.Sprime
+			agent.A = agent.Aprime
+		end
+	end
+end
+
 type PolicyAgent <: AbsAgent
 	policy::Policy
 end
