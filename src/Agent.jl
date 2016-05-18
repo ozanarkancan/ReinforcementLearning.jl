@@ -12,7 +12,7 @@ end
 
 #Q-learning
 type QLearner <: AbsAgent
-	Qtable::Dict{AbsState, Dict{AbsAction, Float64}}
+	Qtable::Dict{Tuple{AbsState, AbsAction}, Float64}
 	Ɣ::Float64
 	α::Float64
 	ε::Float64
@@ -21,13 +21,12 @@ type QLearner <: AbsAgent
 
 	function QLearner(env::AbsEnvironment; Ɣ=0.9, α=0.8, ε=0.05)
 		#Initialize Qtable
-		Qtable = Dict{AbsState, Dict{AbsAction, Float64}}()
+		Qtable = Dict{Tuple{AbsState, AbsAction}, Float64}()
 		for s in getAllStates(env)
-			Qtable[s] = Dict{AbsAction, Float64}()
 			terminal = isTerminal(s, env)
 
 			for a in getActions(s, env)
-				Qtable[s][a] = terminal ? 0 : rand(-5:5)
+				Qtable[(s, a)] = terminal ? 0 : rand(-5:5)
 			end
 		end
 		new(Qtable, Ɣ, α, ε, nothing, nothing)
@@ -38,9 +37,9 @@ function maxQ(agent::QLearner, state::AbsState, env::AbsEnvironment)
 	m = -1e32
 	action = nothing
 	for a in getActions(state, env)
-		if agent.Qtable[state][a] > m
+		if agent.Qtable[(state, a)] > m
 			action = a
-			m = agent.Qtable[state][a]
+			m = agent.Qtable[(state, a)]
 		end
 	end
 	(action, m)
@@ -64,8 +63,8 @@ end
 function observe(agent::QLearner, state::AbsState, reward::Float64, env::AbsEnvironment; learn=true, terminal=false)
 	if learn
 		action, q = maxQ(agent, state, env)
-		agent.Qtable[agent.lastState][agent.lastAction] = agent.Qtable[agent.lastState][agent.lastAction] + 
-			agent.α * (reward + agent.Ɣ * q - agent.Qtable[agent.lastState][agent.lastAction])
+		agent.Qtable[(agent.lastState, agent.lastAction)] = agent.Qtable[(agent.lastState, agent.lastAction)] + 
+			agent.α * (reward + agent.Ɣ * q - agent.Qtable[(agent.lastState, agent.lastAction)])
 		if terminal
 			agent.lastState = nothing
 			agent.lastAction = nothing
@@ -113,8 +112,8 @@ end
 function observe(agent::SarsaLearner, state::AbsState, reward::Float64, env::AbsEnvironment; learn=true, terminal=false)
 	if learn
 		action = play(agent, state, env; observe=true)
-		agent.qlearner.Qtable[agent.S][agent.A] = agent.qlearner.Qtable[agent.S][agent.A] + 
-			agent.qlearner.α * (reward + agent.qlearner.Ɣ * agent.qlearner.Qtable[agent.Sprime][agent.Aprime] - agent.qlearner.Qtable[agent.S][agent.A])
+		agent.qlearner.Qtable[(agent.S, agent.A)] = agent.qlearner.Qtable[(agent.S,agent.A)] + 
+			agent.qlearner.α * (reward + agent.qlearner.Ɣ * agent.qlearner.Qtable[(agent.Sprime, agent.Aprime)] - agent.qlearner.Qtable[(agent.S,agent.A)])
 		if terminal
 			agent.S = nothing
 			agent.A = nothing
@@ -135,7 +134,7 @@ type SarsaLambdaLearner <: AbsAgent;
 	Sprime
 	Aprime
 	
-	function SarsaLearner(env::AbsEnvironment; Ɣ=0.9, α=0.8, ε=0.05)
+	function SarsaLambdaLearner(env::AbsEnvironment; Ɣ=0.9, α=0.8, ε=0.05)
 		ql = QLearner(env; Ɣ=Ɣ, α=α, ε=ε)
 		E = Dict{Tuple{AbsState, AbsAction}, Float64}()
 		for s in getAllStates(env)
@@ -175,10 +174,8 @@ end
 function observe(agent::SarsaLambdaLearner, state::AbsState, reward::Float64, env::AbsEnvironment; learn=true, terminal=false)
 	if learn
 		action = play(agent, state, env; observe=true)
-		delta = reward + agent.qlearner.Ɣ * agent.qlearner.Qtable[agent.Sprime][agent.Aprime] - agent.qlearner.Qtable[agent.S][agent.A]
+		delta = reward + agent.qlearner.Ɣ * agent.qlearner.Qtable[(agent.Sprime, agent.Aprime)] - agent.qlearner.Qtable[(agent.S, agent.A)]
 		E[(agent.S, agent.A)] = E[(agent.S, agent.A)] + 1
-		agent.qlearner.Qtable[agent.S][agent.A] = agent.qlearner.Qtable[agent.S][agent.A] + 
-			agent.qlearner.α * (reward + agent.qlearner.Ɣ * agent.qlearner.Qtable[agent.Sprime][agent.Aprime] - agent.qlearner.Qtable[agent.S][agent.A])
 		if terminal
 			agent.S = nothing
 			agent.A = nothing
