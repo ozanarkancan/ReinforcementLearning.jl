@@ -25,6 +25,11 @@ function parse_commandline()
 			help = "learning step"
 			default = 0.8
 			arg_type = Float64
+		"--lambda"
+			help = "td lambda"
+			default = 0.5
+			arg_type = Float64
+
 		"--dims"
 			help = "dimensions of the maze"
 			nargs='+'
@@ -146,6 +151,8 @@ hash(a::MazeAction) = hash(a.act)
 isequal(lhs::MazeState, rhs::MazeState) = ==(lhs, rhs)
 hash(s::MazeState) = hash(s.loc)
 
+hash(t::Tuple{MazeState, MazeAction}) = hash([t[1].loc, t[2].act])
+
 type MazeEnv <: AbsEnvironment
 	dims
 	maze
@@ -221,7 +228,7 @@ function transfer(env::MazeEnv, state::MazeState, action::MazeAction)
 	return (next_state, reward, 1.0)
 end
 
-function agent_experiement(agent, env, optimumReward, threshold, steps, rInitial)
+function agent_experiment(agent, env, optimumReward, threshold, steps, rInitial)
 	totalRewards = 0.0
 	rewards = Any[]
 	nstates = Any[]
@@ -308,15 +315,20 @@ function main()
 	
 	println("\nQ Learning")
 	agentQ = QLearner(env;ε=args["eps"], α=args["alpha"], Ɣ=args["gamma"])
-	agent_experiement(agentQ, env, optimumReward, threshold, steps, false)
+	agent_experiment(agentQ, env, optimumReward, threshold, steps, false)
 
 	println("\nSarsa")
 	agentSarsa = SarsaLearner(env;ε=args["eps"], α=args["alpha"], Ɣ=args["gamma"])
-	agent_experiement(agentSarsa, env, optimumReward, threshold, steps, false)
+	agent_experiment(agentSarsa, env, optimumReward, threshold, steps, false)
 	
+	println("\nSarsa Lambda")
+	agentSarsaLambda = SarsaLambdaLearner(env; λ=args["lambda"], ε=args["eps"], α=args["alpha"], Ɣ=args["gamma"])
+	agent_experiment(agentSarsaLambda, env, optimumReward, threshold, steps, false)
+
+
 	println("\nMonte Carlo")
 	agentMC = MonteCarloAgent(env)
-	agent_experiement(agentMC, env, optimumReward, threshold, steps, true)
+	agent_experiment(agentMC, env, optimumReward, threshold, steps, true)
 end
 
 main()

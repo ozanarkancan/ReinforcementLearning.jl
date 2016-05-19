@@ -129,12 +129,14 @@ end
 type SarsaLambdaLearner <: AbsAgent; 
 	qlearner::QLearner
 	E::Dict{Tuple{AbsState, AbsAction}, Float64}
+	λ
 	S
 	A
 	Sprime
 	Aprime
+
 	
-	function SarsaLambdaLearner(env::AbsEnvironment; Ɣ=0.9, α=0.8, ε=0.05)
+	function SarsaLambdaLearner(env::AbsEnvironment; λ=0.9, Ɣ=0.9, α=0.8, ε=0.05)
 		ql = QLearner(env; Ɣ=Ɣ, α=α, ε=ε)
 		E = Dict{Tuple{AbsState, AbsAction}, Float64}()
 		for s in getAllStates(env)
@@ -143,7 +145,7 @@ type SarsaLambdaLearner <: AbsAgent;
 			end
 		end
 
-		new(ql, E, nothing, nothing, nothing, nothing)
+		new(ql, E, λ, nothing, nothing, nothing, nothing)
 	end
 end
 
@@ -175,7 +177,15 @@ function observe(agent::SarsaLambdaLearner, state::AbsState, reward::Float64, en
 	if learn
 		action = play(agent, state, env; observe=true)
 		delta = reward + agent.qlearner.Ɣ * agent.qlearner.Qtable[(agent.Sprime, agent.Aprime)] - agent.qlearner.Qtable[(agent.S, agent.A)]
-		E[(agent.S, agent.A)] = E[(agent.S, agent.A)] + 1
+		agent.E[(agent.S, agent.A)] = agent.E[(agent.S, agent.A)] + 1
+		
+		for s in getAllStates(env)
+			for a in getActions(s, env)
+				agent.qlearner.Qtable[(s, a)] = agent.qlearner.Qtable[(s, a)] + agent.qlearner.α * delta * agent.E[(s,a)]
+				agent.E[(s, a)] = agent.qlearner.Ɣ * agent.λ * agent.E[(s,a)]
+			end
+		end
+
 		if terminal
 			agent.S = nothing
 			agent.A = nothing
@@ -184,7 +194,7 @@ function observe(agent::SarsaLambdaLearner, state::AbsState, reward::Float64, en
 			
 			for s in getAllStates(env)
 				for a in getActions(s, env)
-					E[(s, a)] = 0.0
+					agent.E[(s, a)] = 0.0
 				end
 			end
 
