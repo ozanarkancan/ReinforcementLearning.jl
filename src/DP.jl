@@ -2,7 +2,7 @@ function iterative_policy_evaluation(env::AbsEnvironment, policy::Policy; Ɣ=0.9
 	states = getAllStates(env)
 	if V == nothing
 		V = Dict{AbsState, Float64}()
-		for s in states; V[s] = rand(0:100); end
+		for s in states; V[s] = 0.0; end
 	end
 	delta = 1.0
 	
@@ -44,7 +44,7 @@ function policy_iteration(env::AbsEnvironment; Ɣ=0.9, verbose=false)
 	policy = Policy()
 	
 	for s in states
-		V[s] = rand(0:100)
+		V[s] = 0.0
 		actionSet = getActions(s, env)
 		a = shuffle(collect(actionSet))[1]
 		policy.mapping[s] = [(a, 1.0)]#action & probability, i.e. deterministic policy
@@ -89,7 +89,7 @@ function synchronous_value_iteration(env::AbsEnvironment; Ɣ=0.9, verbose=false)
 	#Initialize V
 	V = Dict{AbsState, Float64}()
 	states = getAllStates(env)
-	for s in states; V[s] = rand(0:100); end
+	for s in states; V[s] = 0.0; end
 
 	#Value Iteration
 	delta = 1.0
@@ -146,7 +146,7 @@ function gauss_seidel_value_iteration(env::AbsEnvironment; Ɣ=0.9, verbose=false
 	#Initialize V
 	V = Dict{AbsState, Float64}()
 	states = getAllStates(env)
-	for s in states; V[s] = rand(0:100); end
+	for s in states; V[s] = 0.0; end
 
 	#Value Iteration
 	delta = 1.0
