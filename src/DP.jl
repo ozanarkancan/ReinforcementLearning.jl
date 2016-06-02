@@ -49,6 +49,12 @@ function policy_iteration(env::AbsEnvironment; Ɣ=0.9, verbose=false)
 		a = shuffle(collect(actionSet))[1]
 		policy.mapping[s] = [(a, 1.0)]#action & probability, i.e. deterministic policy
 	end
+
+	if verbose
+		for s in states
+			println("State: $(s), Value: $(V[s]), Action: $(policy.mapping[s][1][1])")
+		end
+	end
 	
 	policyStable = false
 	iteration = 1
@@ -79,6 +85,12 @@ function policy_iteration(env::AbsEnvironment; Ɣ=0.9, verbose=false)
 			end
 
 			verbose && println("After Update - State: $(s), Action: $(policy.mapping[s][1][1])")
+		end
+		if verbose
+			for s in states
+				println("State: $(s), Value: $(V[s]), Action: $(policy.mapping[s][1][1])")
+			end
+				  
 		end
 	end
 	println("Number of iterations: $iteration")
