@@ -103,6 +103,8 @@ function reset()
 	global direction
 	global ro
 	global a_ro
+	global s_ro
+	global f_ro
 	global signal
 	global window
 	global a_model
@@ -119,7 +121,9 @@ function reset()
 	Reactive.run_till_now()
 	glClear(GL_COLOR_BUFFER_BIT)
 	render(ro)
+	render(s_ro)
 	render(a_ro)
+	render(f_ro)
 	GLFW.SwapBuffers(window)
 	sleep(0.01)
 end
@@ -128,6 +132,8 @@ function rot(pos=1.0)
 	global direction
 	global ro
 	global a_ro
+	global s_ro
+	global f_ro
 	global signal
 	global window
 	global speed
@@ -143,7 +149,9 @@ function rot(pos=1.0)
 		Reactive.run_till_now()
 		glClear(GL_COLOR_BUFFER_BIT)
 		render(ro)
+		render(s_ro)
 		render(a_ro)
+		render(f_ro)
 		GLFW.SwapBuffers(window)
 		sleep(speed)
 	end
@@ -159,6 +167,8 @@ function move()
 	global signal
 	global ro
 	global a_ro
+	global s_ro
+	global f_ro
 	global window
 	global speed
 
@@ -171,30 +181,21 @@ function move()
 		a_ro[:view] = translationmatrix(Vec{3, Float32}((w/15.0 * wdx, h/15.0 * hdx,0.0f0))) * a_ro[:view]
 		glClear(GL_COLOR_BUFFER_BIT)
 		render(ro)
+		render(s_ro)
 		render(a_ro)
+		render(f_ro)
 		GLFW.SwapBuffers(window)
 		sleep(speed)
 	end
 end
 
-function main()
-	args = parse_commandline()
-	hm, wm = args["dims"]
-	global env = MazeEnv((hm,wm))
-	agent = QLearner(env;ε=args["eps"], α=args["alpha"], Ɣ=args["gamma"])
-
-	global direction = 1
-	global train = true
-
-	global window = create_glcontext("Maze Solving", resolution=(800, 600))
-	global speed = 0.0001
-
-	vao = glGenVertexArrays()
-	glBindVertexArray(vao)
+function create_maze(wm, hm)
+	imgstart = load("start.png")
+	imgend = load("checkered.png")
 
 	w = 2.0 / wm
 	h = 2.0 / hm
-
+	
 	positions = Point{2, Float32}[]
 	clrs = Vec3f0[]
 	elements = Face{3, UInt32, -1}[]
@@ -203,8 +204,8 @@ function main()
 	a_clrs = Vec3f0[]
 	a_elements = Face{3, UInt32, -1}[]
 	
-	paint((-1, 1 - (env.start[1]-1)*h), w, h, positions, clrs, elements, (1.0, 1.0, 0.0))
-	paint((-1 + (wm - 1)*w, 1 - (env.goal[1]-1)*h), w, h, positions, clrs, elements, (0.0, 1.0, 0.0))
+	#paint((-1, 1 - (env.start[1]-1)*h), w, h, positions, clrs, elements, (1.0, 1.0, 0.0))
+	#paint((-1 + (wm - 1)*w, 1 - (env.goal[1]-1)*h), w, h, positions, clrs, elements, (0.0, 1.0, 0.0))
 
 	agent_model((-1, 1), 2.0, 2.0, a_positions, a_clrs, a_elements)
 	
@@ -228,6 +229,31 @@ function main()
 		end
 	end
 
+	#=
+	s_start = (-1, 1 - (env.start[1]-1)*h)
+	s_vertex_positions = Point{2,Float32}[s_start,     # top-left
+		(s_start[1] + w, s_start[2]),     # top-right
+		(s_start[1], s_start[2] - h),     # bottom-right
+		(s_start[1] + w, s_start[2] - h)]     # bottom-left
+	=#
+	s_vertex_positions = Point{2,Float32}[(-1.0, 1.0), (1.0, 1.0), (1.0, -1.0), (-1.0, -1.0)]
+		
+	# The colors assigned to each vertex
+	vertex_colors = Vec3f0[(1, 1, 1),      # top-left
+		(1, 1, 1),                     # top-right
+		(1, 1, 1),                     # bottom-right
+		(1, 1, 1)]                     # bottom-left
+	
+	# The texture coordinates of each vertex
+	vertex_texcoords = Vec2f0[(0, 0),
+	                          (1, 0),
+				  (1, 1),
+				  (0, 1)]
+	
+	vertex_elements = Face{3,UInt32,-1}[(0,1,2),          # the first triangle
+	                             (2,3,0)]          # the second triangle
+
+
 	vertex_source= vert"""
 	# version 150
 	in vec2 position;
@@ -244,6 +270,28 @@ function main()
 	gl_Position = proj * view * model * vec4(position,0.0, 1.0);
 	}
 	"""
+
+	tex_vertex_source= vert"""
+	# version 150
+	in vec2 position;
+	in vec3 color;
+	in vec2 texcoord;
+
+	uniform mat4 model;
+	uniform mat4 view;
+	uniform mat4 proj;
+
+	out vec3 Color;
+	out vec2 Texcoord;
+
+	void main()
+	{
+	Color = color;
+	Texcoord = texcoord;
+	gl_Position = proj * view * model * vec4(position,0.0, 1.0);
+	}
+	"""
+
 	fragment_source = frag"""
 	# version 150
 	in vec3 Color;
@@ -251,6 +299,20 @@ function main()
 	void main()
 	{
 	outColor = vec4(Color, 1.0);
+	}
+	"""
+	
+	tex_fragment_source = frag"""
+	# version 150
+	in vec3 Color;
+	in vec2 Texcoord;
+
+	out vec4 outColor;
+
+	uniform sampler2D tex;
+	void main()
+	{
+	outColor = texture(tex, Texcoord) * vec4(Color, 1.0);
 	}
 	"""
 
@@ -278,12 +340,119 @@ function main()
 	:model=>a_model,
 	:view=>a_view,
 	:proj=>proj
-	)		
+	)
 
+	s_view = translationmatrix(Vec((-(wm / 2 - 0.5)*w, (hm/2 + 0.5 - env.start[1])*h , 0.0f0))) * scalematrix(Vec((1.0/(wm+3), 1.0/(hm+3), 1.0f0)))
+	s_bufferdict = Dict(:position=>GLBuffer(s_vertex_positions),
+	:color=>GLBuffer(vertex_colors),
+	:indexes=>indexbuffer(vertex_elements),
+	:model=>model,
+	:view=>s_view,
+	:proj=>proj,
+	:tex=>Texture(data(imgstart)),
+	:texcoord=>GLBuffer(vertex_texcoords),
+	)
+
+	f_view = translationmatrix(Vec((-(wm / 2 + 0.5 - env.goal[2])*w, (hm/2 + 0.5 - env.goal[1])*h , 0.0f0))) * scalematrix(Vec((1.0/(wm+3), 1.0/(hm+3), 1.0f0)))
+	f_bufferdict = Dict(:position=>GLBuffer(s_vertex_positions),
+	:color=>GLBuffer(vertex_colors),
+	:indexes=>indexbuffer(vertex_elements),
+	:model=>model,
+	:view=>f_view,
+	:proj=>proj,
+	:tex=>Texture(data(imgend)),
+	:texcoord=>GLBuffer(vertex_texcoords),
+	)
 
 	global ro = std_renderobject(bufferdict, LazyShader(vertex_source, fragment_source))
 	global a_ro = std_renderobject(a_bufferdict, LazyShader(vertex_source, fragment_source))
+	global s_ro = std_renderobject(s_bufferdict, LazyShader(tex_vertex_source, tex_fragment_source))
+	global f_ro = std_renderobject(f_bufferdict, LazyShader(tex_vertex_source, tex_fragment_source))
+end
+
+function apply(action)
+	global direction
+	if action == MazeAction(UP)
+		if direction == 1
+			move()
+		elseif direction == 2
+			left()
+			move()
+		elseif direction == 3
+			right()
+			right()
+			move()
+		else
+			right()
+			move()
+		end
+	elseif action == MazeAction(RIGHT)
+		if direction == 1
+			right()
+			move()
+		elseif direction == 2
+			move()
+		elseif direction == 3
+			left()
+			move()
+		else
+			left()
+			left()
+			move()
+		end
+	elseif action == MazeAction(DOWN)
+		if direction == 1
+			right()
+			right()
+			move()
+		elseif direction == 2
+			right()
+			move()
+		elseif direction == 3
+			move()
+		else
+			left()
+			move()
+		end
+
+	else
+		if direction == 1
+			left()
+			move()
+		elseif direction == 2
+			right()
+			right()
+			move()
+		elseif direction == 3
+			right()
+			move()
+		else
+			move()
+		end
+	end
+end
+
+function main()
+	args = parse_commandline()
+	hm, wm = args["dims"]
+	global env = MazeEnv((hm,wm))
+	agent = QLearner(env;ε=args["eps"], α=args["alpha"], Ɣ=args["gamma"])
+
+	global direction = 1
+	global train = true
+
+	global window = create_glcontext("Maze Solving", resolution=(800, 600))
+	global speed = 0.0001
+
+	vao = glGenVertexArrays()
+	glBindVertexArray(vao)
 	
+	#Creating the environment
+	println("Creating the environment")
+	create_maze(wm, hm)
+	
+	global ro
+	global a_ro
 	GLFW.SetKeyCallback(window, key_callback)
 
 	glClearColor(1.0,1.0,1.0,1.0)
@@ -307,64 +476,7 @@ function main()
 			reset()
 		end
 		action = play(agent, state, env; learn=train)
-		if action == MazeAction(UP)
-			if direction == 1
-				move()
-			elseif direction == 2
-				left()
-				move()
-			elseif direction == 3
-				right()
-				right()
-				move()
-			else
-				right()
-				move()
-			end
-		elseif action == MazeAction(RIGHT)
-			if direction == 1
-				right()
-				move()
-			elseif direction == 2
-				move()
-			elseif direction == 3
-				left()
-				move()
-			else
-				left()
-				left()
-				move()
-			end
-		elseif action == MazeAction(DOWN)
-			if direction == 1
-				right()
-				right()
-				move()
-			elseif direction == 2
-				right()
-				move()
-			elseif direction == 3
-				move()
-			else
-				left()
-				move()
-			end
-
-		else
-			if direction == 1
-				left()
-				move()
-			elseif direction == 2
-				right()
-				right()
-				move()
-			elseif direction == 3
-				right()
-				move()
-			else
-				move()
-			end
-		end
+		apply(action)
 		state, reward = transfer(env, state, action)
 		observe(agent, state, reward, env; learn=train)
 		totalRewards += reward
