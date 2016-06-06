@@ -74,6 +74,7 @@ function paint(start, width, height, pos, cols, elms, clr)
 end
 
 function key_callback(window, key, scancode, action, mode)
+	global user
 	if key == GLFW.KEY_ESCAPE && action == GLFW.PRESS
 		GLFW.SetWindowShouldClose(window, true)
 	else
@@ -85,16 +86,17 @@ function key_callback(window, key, scancode, action, mode)
 			move()
 		elseif key == GLFW.KEY_S && action == GLFW.PRESS
 			reset()
+		elseif key == GLFW.KEY_U && action == GLFW.PRESS
+			user = !user
 		elseif key == GLFW.KEY_1 && action == GLFW.PRESS
 			global speed
 			speed = speed * 0.5
 		elseif key == GLFW.KEY_2 && action == GLFW.PRESS
 			global speed
 			speed = speed * 2
-		elseif key == GLFW.KEY_S && action == GLFW.PRESS
+		elseif key == GLFW.KEY_T && action == GLFW.PRESS
 			global train
-			train = train ? false : true
-			
+			train = !train
 		end
 	end
 end	
@@ -122,8 +124,8 @@ function reset()
 	glClear(GL_COLOR_BUFFER_BIT)
 	render(ro)
 	render(s_ro)
-	render(a_ro)
 	render(f_ro)
+	render(a_ro)
 	GLFW.SwapBuffers(window)
 	sleep(0.01)
 end
@@ -150,8 +152,8 @@ function rot(pos=1.0)
 		glClear(GL_COLOR_BUFFER_BIT)
 		render(ro)
 		render(s_ro)
-		render(a_ro)
 		render(f_ro)
+		render(a_ro)
 		GLFW.SwapBuffers(window)
 		sleep(speed)
 	end
@@ -182,8 +184,8 @@ function move()
 		glClear(GL_COLOR_BUFFER_BIT)
 		render(ro)
 		render(s_ro)
-		render(a_ro)
 		render(f_ro)
+		render(a_ro)
 		GLFW.SwapBuffers(window)
 		sleep(speed)
 	end
@@ -204,9 +206,6 @@ function create_maze(wm, hm)
 	a_clrs = Vec3f0[]
 	a_elements = Face{3, UInt32, -1}[]
 	
-	#paint((-1, 1 - (env.start[1]-1)*h), w, h, positions, clrs, elements, (1.0, 1.0, 0.0))
-	#paint((-1 + (wm - 1)*w, 1 - (env.goal[1]-1)*h), w, h, positions, clrs, elements, (0.0, 1.0, 0.0))
-
 	agent_model((-1, 1), 2.0, 2.0, a_positions, a_clrs, a_elements)
 	
 	for i=1:wm
@@ -229,13 +228,6 @@ function create_maze(wm, hm)
 		end
 	end
 
-	#=
-	s_start = (-1, 1 - (env.start[1]-1)*h)
-	s_vertex_positions = Point{2,Float32}[s_start,     # top-left
-		(s_start[1] + w, s_start[2]),     # top-right
-		(s_start[1], s_start[2] - h),     # bottom-right
-		(s_start[1] + w, s_start[2] - h)]     # bottom-left
-	=#
 	s_vertex_positions = Point{2,Float32}[(-1.0, 1.0), (1.0, 1.0), (1.0, -1.0), (-1.0, -1.0)]
 		
 	# The colors assigned to each vertex
@@ -440,9 +432,10 @@ function main()
 
 	global direction = 1
 	global train = true
+	global user = false
 
 	global window = create_glcontext("Maze Solving", resolution=(800, 600))
-	global speed = 0.0001
+	global speed = 0.01
 
 	vao = glGenVertexArrays()
 	glBindVertexArray(vao)
@@ -464,23 +457,30 @@ function main()
 
 	while !GLFW.WindowShouldClose(window)
 		glClear(GL_COLOR_BUFFER_BIT)
-		if isTerminal(state, env)
-			println("Epoch: $epoch, totalReward: $totalRewards")
-			state = getInitialState(env)
-			totalRewards = 0.0
-			numOfStates = 1
-			epoch += 1
-			if epoch > numOfEpochs
-				GLFW.SetWindowShouldClose(window, true)
+		if !user
+			if isTerminal(state, env)
+				println("Epoch: $epoch, totalReward: $totalRewards")
+				state = getInitialState(env)
+				totalRewards = 0.0
+				numOfStates = 1
+				epoch += 1
+				if epoch > numOfEpochs
+					GLFW.SetWindowShouldClose(window, true)
+				end
+				reset()
 			end
-			reset()
+			action = play(agent, state, env; learn=train)
+			apply(action)
+			state, reward = transfer(env, state, action)
+			observe(agent, state, reward, env; learn=train)
+			totalRewards += reward
+			numOfStates += 1
+		else
+			render(ro)
+			render(s_ro)
+			render(f_ro)
+			render(a_ro)
 		end
-		action = play(agent, state, env; learn=train)
-		apply(action)
-		state, reward = transfer(env, state, action)
-		observe(agent, state, reward, env; learn=train)
-		totalRewards += reward
-		numOfStates += 1	
 		GLFW.SwapBuffers(window)
 		GLFW.PollEvents()
 	end			
