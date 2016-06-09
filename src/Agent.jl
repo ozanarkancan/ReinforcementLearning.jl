@@ -5,7 +5,7 @@ play(agent::AbsAgent, state::AbsState, env::AbsEnvironment; learn=true) = error(
 observe(agent::AbsAgent, state::AbsState, reward::Float64, env::AbsEnvironment; learn=true, terminal=false) = nothing
 
 type RandomAgent <: AbsAgent end
-function play(agent::RandomAgent, state::AbsState, env::AbsEnvironment)
+function play(agent::RandomAgent, state::AbsState, env::AbsEnvironment; learn=false)
 	actionSet = getActions(state, env)
 	return shuffle(actionSet)[1]
 end
