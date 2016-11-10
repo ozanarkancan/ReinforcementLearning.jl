@@ -1,5 +1,3 @@
-#include("Environment.jl")
-
 type Policy
 	mapping
 	Policy() = new(Dict{AbsState, Array{Tuple{AbsAction, Float64}}}())

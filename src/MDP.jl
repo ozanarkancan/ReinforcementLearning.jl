@@ -1,5 +1,3 @@
-include("Environment.jl")
-
 type State <: AbsState; id; end
 type Action <: AbsAction; id; end
 
