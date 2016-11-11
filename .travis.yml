@@ -23,7 +23,8 @@ before_install:
 script:
   - git clone https://github.com/openai/gym
   - cd gym
-  - pip install -e '.[all]'
+  - pip install --user -e '.[all]'
+  - export PATH=$HOME/.local/bin:$PATH
   - if [[ -a .git/shallow ]]; then git fetch --unshallow; fi
   - julia -e 'Pkg.clone(pwd()); Pkg.build("ReinforcementLearning"); Pkg.test("ReinforcementLearning"; coverage=true)'
 
