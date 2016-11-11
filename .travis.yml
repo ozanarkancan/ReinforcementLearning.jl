@@ -1,5 +1,6 @@
 # Documentation: http://docs.travis-ci.com/user/languages/julia/
 language: julia
+sudo: required
 os:
   - linux
   - osx
@@ -22,8 +23,11 @@ env:
         env: PYTHON=python3 # I'm not sure how to install Python 3 on Travis OSX
 before_install:
   - test "x$TRAVIS_OS_NAME" = xosx -o "x$PYTHON" = xConda-python || (sudo apt-get -qq update && sudo apt-get install -y $PYTHON)
+  - pip install --upgrade pip
 script:
-  - pip install --user gym[all]
+  - git clone https://github.com/openai/gym
+  - cd gym
+  - pip install -e '.[all]'
   - if [[ -a .git/shallow ]]; then git fetch --unshallow; fi
   - julia -e 'Pkg.clone(pwd()); Pkg.build("ReinforcementLearning"); Pkg.test("ReinforcementLearning"; coverage=true)'
 
