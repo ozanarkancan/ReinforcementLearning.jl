@@ -5,10 +5,10 @@ os:
   - osx
 julia:
   - release
-  - nightly
 notifications:
   email: true
 # uncomment the following lines to override the default test script
+# settings from PyCall.jl
 env:
   global:
     - PYCALL_DEBUG_BUILD="yes"
@@ -22,8 +22,8 @@ env:
         env: PYTHON=python3 # I'm not sure how to install Python 3 on Travis OSX
 before_install:
   - test "x$TRAVIS_OS_NAME" = xosx -o "x$PYTHON" = xConda-python || (sudo apt-get -qq update && sudo apt-get install -y $PYTHON)
-  - pip install gym[all]
 script:
+  - pip install --user gym[all]
   - if [[ -a .git/shallow ]]; then git fetch --unshallow; fi
   - julia -e 'Pkg.clone(pwd()); Pkg.build("ReinforcementLearning"); Pkg.test("ReinforcementLearning"; coverage=true)'
 
