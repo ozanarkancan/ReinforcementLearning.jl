@@ -6,10 +6,11 @@ os:
 julia:
   - release
   - nightly
-  - 0.4+
 notifications:
   email: true
 # uncomment the following lines to override the default test script
+before_install:
+  - git clone https://github.com/openai/gym | cd gym | pip install -e '.all'
 script:
   - if [[ -a .git/shallow ]]; then git fetch --unshallow; fi
   - julia -e 'Pkg.clone(pwd()); Pkg.build("ReinforcementLearning"); Pkg.test("ReinforcementLearning"; coverage=true)'

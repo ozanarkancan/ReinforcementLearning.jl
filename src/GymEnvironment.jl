@@ -1,6 +1,7 @@
-using OpenAIGym
+using PyCall
+global const gym = PyCall.pywrap(PyCall.pyimport("gym"))
 
-type GymState <: AbsState; state::OpenAIGym.State; end
+type GymState <: AbsState; data; done; end
 type GymAction <: AbsAction; action; end
 
 #=
@@ -15,13 +16,30 @@ hash(a::Action) = hash(a.id)
 
 type GymEnv <: AbsEnvironment
 	env
-	GymEnv(name::AbstractString) = new(Env(name))
+	actions
 end
 
-getActions(s::GymState, env::GymEnv) = map(GymAction, 0:(action_space(env.env)[:n]-1))
-getInitialState(env::GymEnv) = GymState(reset(env.env))
-isTerminal(state::GymState, env::GymEnv) = state.state.done
-function transfer(env::GymEnv, state::GymState, action::GymAction)
-	s = step(env.env, action.action)
-	return (GymState(s), s.reward)
+function GymEnv(name::AbstractString)
+	env = gym.make(name)
+	actions = nothing
+	if :n in keys(env[:action_space])
+		actions = map(GymAction, 0:(env[:action_space][:n]-1))
+	else
+		actions = (env[:action_space][:low], env[:action_space][:high])
+	end
+	GymEnv(env, actions)
 end
+
+getActions(s::GymState, env::GymEnv) = env.actions
+getInitialState(env::GymEnv) = GymState(env.env[:reset](), false)
+isTerminal(state::GymState, env::GymEnv) = state.done
+
+function transfer(env::GymEnv, state::GymState, action::GymAction)
+	obs, reward, done, info = env.env[:step](action.action)
+	return (GymState(obs, done), reward)
+end
+
+monitor_start(env::GymEnv, fname::AbstractString) = env.env[:monitor][:start](fname)
+monitor_close(env::GymEnv) = env.env[:monitor][:close]()
+render(env::GymEnv) = env.env[:render]()
+sample(env) = GymAction(env.env[:action_space][:sample]())

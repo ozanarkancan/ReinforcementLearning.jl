@@ -17,7 +17,6 @@ transfer(env::AbsEnvironment, state::AbsState, action::AbsAction) = error("trans
 getInitialState(env::AbsEnvironment) = error("getInitialState is unimplemented")
 getAllStates(env::AbsEnvironment) = error("getAllStates unimplemented")
 
-
 ==(l::AbsAction, r::AbsAction) = error("== is unimplemented")
 isequal(l::AbsAction, r::AbsAction) = error("isequal is unimplemented")
 hash(x::AbsAction) = error("hash is unimplemented")

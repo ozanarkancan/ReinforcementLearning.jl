@@ -6,5 +6,5 @@ include("Agent.jl"); export AbsAgent, play, observe, RandomAgent, QLearner, Sars
 include("Engine.jl"); export playEpisode
 include("MDP.jl"); export MDP, State, Action, printmdp
 include("DP.jl"); export Policy, actionsAndProbs, iterative_policy_evaluation, policy_iteration, synchronous_value_iteration, gauss_seidel_value_iteration
-#include("GymEnvironment.jl"); export GymState, GymAction, GymEnv
+include("GymEnvironment.jl"); export GymState, GymAction, GymEnv, render, sample, monitor_start, monitor_close
 end # module
