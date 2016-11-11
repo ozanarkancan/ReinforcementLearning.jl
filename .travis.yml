@@ -3,7 +3,6 @@ language: julia
 sudo: required
 os:
   - linux
-  - osx
 julia:
   - release
 notifications:
@@ -17,6 +16,7 @@ env:
     - PYTHON=python  # python 2.7
     - PYTHON=Conda-python # not actually a python version, here to test Conda.jl's python
 before_install:
+  - sudo apt-get install python python-setuptools python-dev python-augeas gcc swig dialog
   - test "x$TRAVIS_OS_NAME" = xosx -o "x$PYTHON" = xConda-python || (sudo apt-get -qq update && sudo apt-get install -y $PYTHON)
   - pip install --user --upgrade pip
   - export PATH=$HOME/.local/bin:$PATH
