@@ -3,7 +3,6 @@ language: julia
 sudo: required
 os:
   - linux
-  - osx
 julia:
   - release
 notifications:
@@ -26,6 +25,7 @@ script:
   - cd gym
   - pip install --user -e '.[atari]'
   - export PATH=$HOME/.local/bin:$PATH
+  - cd ..
   - if [[ -a .git/shallow ]]; then git fetch --unshallow; fi
   - julia -e 'Pkg.clone(pwd()); Pkg.build("ReinforcementLearning"); Pkg.test("ReinforcementLearning"; coverage=true)'
 
