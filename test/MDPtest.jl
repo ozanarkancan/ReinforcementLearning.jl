@@ -1,5 +1,26 @@
 using ReinforcementLearning, Base.Test
 
+mdp = MDP(4, 6)
+@test mdp.ns == 4
+@test mdp.na == 6
+
+states = getAllStates(mdp)
+
+for i=1:4
+	@test (State(i) in states) == true
+end
+
+for s in states
+	for a in getActions(s, mdp)
+		total = 0.0
+		for (sprime, reward, prob) in getSuccessors(s, a, mdp)
+			@test (prob >= 0.0 && prob <= 1.0)
+			total += prob
+		end
+		@test abs(total - 1.0) <= 1e4
+	end
+end
+
 ss = [State(1), State(2)]
 as = [Action(1), Action(2), Action(3)]
 
