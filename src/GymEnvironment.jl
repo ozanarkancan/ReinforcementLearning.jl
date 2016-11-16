@@ -8,11 +8,11 @@ type GymAction <: AbsAction; action; end
 ==(lhs::State, rhs::State) = lhs.id == rhs.id
 isequal(lhs::State, rhs::State) = lhs.id == rhs.id
 hash(s::State) = hash(s.id)
-
-==(lhs::Action, rhs::Action) = lhs.id == rhs.id
-isequal(lhs::Action, rhs::Action) = lhs.id == rhs.id
-hash(a::Action) = hash(a.id)
 =#
+
+==(lhs::GymAction, rhs::GymAction) = lhs.action == rhs.action
+isequal(lhs::GymAction, rhs::GymAction) = lhs.action == rhs.action
+hash(a::GymAction) = hash(a.action)
 
 type GymEnv <: AbsEnvironment
 	env
