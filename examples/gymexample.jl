@@ -16,7 +16,7 @@ for i=1:2
 	numOfStates = 1.0
 
 	while !isTerminal(state, env) && numOfStates < threshold
-		render(env)
+		render_gym(env)
 		action = play(agent, state, env; learn=false)
 		state, reward = transfer(env, state, action)
 		totalRewards += reward
