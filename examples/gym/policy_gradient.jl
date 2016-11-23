@@ -28,7 +28,7 @@ end
 ReinforceAgent(w, prms; γ=0.99) = ReinforceAgent(w, prms, Any[], Any[], Array{Float64, 1}(), γ)
 
 function predict(w, b, x)
-	linear =  w * x .+ b
+	linear = w * x .+ b
 end
 
 function sample_action(linear)
@@ -75,7 +75,7 @@ function observe(agent::ReinforceAgent, state::AbsState, reward::Float64, env::A
 		push!(agent.rewards, reward)
 		if terminal
 			if length(agent.rewards) < 195
-				agent.rewards[end] = -50;
+				agent.rewards[end] = -200;
 			end
 
 			disc_rewards = discount(agent.rewards; γ=agent.γ)
@@ -106,8 +106,7 @@ function main()
 		push!(rewards, totalRewards)
 		msg = string("Episode ", i, " , total rewards: ", totalRewards)
 		if i >= 100
-			sort!(rewards; rev=true)
-			m = mean(rewards[1:100])
+			m = mean(rewards[(i-100+1):end])
 			msg = string(msg, " , mean: ", m)
 			if m >= 195
 				break
