@@ -1,4 +1,4 @@
-function playEpisode(env::AbsEnvironment, agent::AbsAgent; verbose=false, randomInitial = false, learn=true, threshold=100000)
+function playEpisode(env::AbsEnvironment, agent::AbsAgent; verbose=false, randomInitial = false, learn=true, threshold=100000, render=false)
 	state = randomInitial ? rand(getAllStates(env)) : getInitialState(env)
 	totalRewards = 0.0
 	numOfStates = 1
@@ -6,6 +6,7 @@ function playEpisode(env::AbsEnvironment, agent::AbsAgent; verbose=false, random
 	verbose && println("Initial State: $(state)")
 
 	while !isTerminal(state, env) && numOfStates < threshold
+		render && render_env(env)
 		action = play(agent, state, env; learn=learn)
 		verbose && println("Action: $(action)")
 		state, reward = transfer(env, state, action)
