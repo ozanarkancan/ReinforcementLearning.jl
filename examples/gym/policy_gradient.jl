@@ -1,5 +1,5 @@
 importall ReinforcementLearning
-using Knet
+using Knet, ArgParse
 
 type ReinforceAgent <: AbsAgent
 	weights
@@ -79,6 +79,7 @@ function observe(agent::ReinforceAgent, state::AbsState, reward::Float64, env::A
 			end
 
 			disc_rewards = discount(agent.rewards; γ=agent.γ)
+			disc_rewards -= mean(disc_rewards)
 			for i=1:length(agent.states)
 				g = lossgradient(agent.weights, agent.states[i], agent.actions[i])
 				for k in keys(g)
@@ -93,16 +94,27 @@ function observe(agent::ReinforceAgent, state::AbsState, reward::Float64, env::A
 	end
 end
 
-function main()
+function main(args=ARGS)
+	s = ArgParseSettings()
+	s.description="Solution with REINFORCE algorithm"
+	s.exc_handler=ArgParse.debug_handler
+	@add_arg_table s begin
+		("--lr"; arg_type=Float64; default=0.01; help="learning rate")
+		("--gamma"; arg_type=Float64; default=0.9; help="discount rate")
+		("--env"; default="CartPole-v0"; help="name of the environment")
+		("--render"; action=:store_true; help="display the env")
+		("--monitor"; default=""; help="path of the log for the experiment, empty if mointoring is disabled")
+	end
 	srand(123)
-	env = GymEnv("CartPole-v0")
-	agent = ReinforceAgent(env; α=0.01, γ=0.9)
-	threshold = 1000
+	o = parse_args(args, s)
+	env = GymEnv(o["env"])
+	agent = ReinforceAgent(env; α=o["lr"], γ=o["gamma"])
+	threshold = 500
 	rewards = Array{Float64, 1}()
 
-	monitor_start(env, "/home/cano/gym_experiments/cartpole_pg")
-	for i=1:1000
-		totalRewards, numberOfStates = playEpisode(env, agent; learn=true, threshold = threshold, render=false)
+	o["monitor"] != "" && monitor_start(env, o["monitor"])
+	for i=1:300
+		totalRewards, numberOfStates = playEpisode(env, agent; learn=true, threshold = threshold, render=o["render"])
 		push!(rewards, totalRewards)
 		msg = string("Episode ", i, " , total rewards: ", totalRewards)
 		if i >= 100
@@ -114,7 +126,7 @@ function main()
 		end
 		println(msg)
 	end
-	monitor_close(env)
+	o["monitor"] != "" && monitor_close(env)
 end
 
 main()
