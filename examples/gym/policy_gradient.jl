@@ -75,11 +75,10 @@ function observe(agent::ReinforceAgent, state::AbsState, reward::Float64, env::A
 		push!(agent.rewards, reward)
 		if terminal
 			if length(agent.rewards) < 195
-				agent.rewards[end] = -200;
+				agent.rewards[end] = -100;
 			end
 
 			disc_rewards = discount(agent.rewards; γ=agent.γ)
-			disc_rewards -= mean(disc_rewards)
 			for i=1:length(agent.states)
 				g = lossgradient(agent.weights, agent.states[i], agent.actions[i])
 				for k in keys(g)
@@ -109,7 +108,7 @@ function main(args=ARGS)
 	o = parse_args(args, s)
 	env = GymEnv(o["env"])
 	agent = ReinforceAgent(env; α=o["lr"], γ=o["gamma"])
-	threshold = 500
+	threshold = 1000
 	rewards = Array{Float64, 1}()
 
 	o["monitor"] != "" && monitor_start(env, o["monitor"])
