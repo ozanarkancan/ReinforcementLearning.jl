@@ -103,17 +103,18 @@ function main(args=ARGS)
 		("--env"; default="CartPole-v0"; help="name of the environment")
 		("--render"; action=:store_true; help="display the env")
 		("--monitor"; default=""; help="path of the log for the experiment, empty if mointoring is disabled")
+		("--epoch"; arg_type=Int; default=300; help="number of epochs")
+		("--threshold"; arg_type=Int; default=1000; help="stop the episode even it is not terminal after number of steps exceeds the threshold")
 	end
 	srand(123)
 	o = parse_args(args, s)
 	env = GymEnv(o["env"])
 	agent = ReinforceAgent(env; α=o["lr"], γ=o["gamma"])
-	threshold = 1000
 	rewards = Array{Float64, 1}()
 
 	o["monitor"] != "" && monitor_start(env, o["monitor"])
-	for i=1:300
-		totalRewards, numberOfStates = playEpisode(env, agent; learn=true, threshold = threshold, render=o["render"])
+	for i=1:o["epoch"]
+		totalRewards, numberOfStates = playEpisode(env, agent; learn=true, threshold = o["threshold"], render=o["render"])
 		push!(rewards, totalRewards)
 		msg = string("Episode ", i, " , total rewards: ", totalRewards)
 		if i >= 100
