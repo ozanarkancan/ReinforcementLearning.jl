@@ -14,9 +14,19 @@ hash(s::State) = hash(s.id)
 isequal(lhs::GymAction, rhs::GymAction) = lhs.action == rhs.action
 hash(a::GymAction) = hash(a.action)
 
+type Spec
+	id
+	nondeterministic
+	reward_threshold
+	tags
+	timestep_limit
+	trials
+end
+
 type GymEnv <: AbsEnvironment
 	env
 	actions
+	spec
 end
 
 function GymEnv(name::AbstractString)
@@ -27,7 +37,9 @@ function GymEnv(name::AbstractString)
 	else
 		actions = (env[:action_space][:low], env[:action_space][:high])
 	end
-	GymEnv(env, actions)
+	s = Spec(env[:spec][:id], env[:spec][:nondeterministic], env[:spec][:reward_threshold],
+		env[:spec][:tags], env[:spec][:timestep_limit], env[:spec][:trials])
+	GymEnv(env, actions, s)
 end
 
 getActions(s::GymState, env::GymEnv) = env.actions
