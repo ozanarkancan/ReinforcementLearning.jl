@@ -1,14 +1,9 @@
 using PyCall
+
 global const gym = PyCall.pywrap(PyCall.pyimport("gym"))
 
 type GymState <: AbsState; data; done; end
 type GymAction <: AbsAction; action; end
-
-#=
-==(lhs::State, rhs::State) = lhs.id == rhs.id
-isequal(lhs::State, rhs::State) = lhs.id == rhs.id
-hash(s::State) = hash(s.id)
-=#
 
 ==(lhs::GymAction, rhs::GymAction) = lhs.action == rhs.action
 isequal(lhs::GymAction, rhs::GymAction) = lhs.action == rhs.action
@@ -55,3 +50,4 @@ monitor_start(env::GymEnv, fname::AbstractString) = env.env[:monitor][:start](fn
 monitor_close(env::GymEnv) = env.env[:monitor][:close]()
 render_env(env::GymEnv) = env.env[:render]()
 sample(env) = GymAction(env.env[:action_space][:sample]())
+
