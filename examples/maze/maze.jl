@@ -4,7 +4,7 @@ import Base.isequal
 import Base.hash
 
 pkgs = ["ArgParse"]
-for pkg in pkgs; Pkg.installed(p) == nothing && Pkg.add(pkg); end
+for pkg in pkgs; Pkg.installed(pkg) == nothing && Pkg.add(pkg); end
 
 using ArgParse
 
@@ -334,4 +334,8 @@ function main()
 	agent_experiment(agentMC, env, optimumReward, threshold, steps, true)
 end
 
-#main()
+if VERSION >= v"0.5.0-dev+7720"
+    PROGRAM_FILE=="maze.jl" && main()
+else
+    !isinteractive() && !isdefined(Core.Main,:load_only) && main()
+end

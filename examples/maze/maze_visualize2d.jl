@@ -1,7 +1,7 @@
 include("maze.jl")
 
 pkgs = ["ModernGL", "GLAbstraction", "GeometryTypes", "GLWindow", "Images", "FileIO", "Reactive", "ImageMagick"]
-for pkg in pkgs; Pkg.installed(p) == nothing && Pkg.add(pkg); end
+for pkg in pkgs; Pkg.installed(pkg) == nothing && Pkg.add(pkg); end
 
 using ModernGL, GeometryTypes, GLAbstraction, GLWindow, Images, FileIO, Reactive, ArgParse
 
