@@ -3,6 +3,9 @@ import Base.==
 import Base.isequal
 import Base.hash
 
+pkgs = ["ArgParse"]
+for pkg in pkgs; Pkg.installed(p) == nothing && Pkg.add(pkg); end
+
 using ArgParse
 
 function parse_commandline()
