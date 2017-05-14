@@ -34,7 +34,7 @@ function iterative_policy_evaluation(env::AbsEnvironment, policy::Policy; Ɣ=0.9
 end
 
 #Returns optimal policy and state values
-function policy_iteration(env::AbsEnvironment; Ɣ=0.9, verbose=false)
+function policy_iteration(env::AbsEnvironment; Ɣ=0.9, verbose=false, Vs=nothing, Ps=nothing)
     states = getAllStates(env)
 
     ### INITIALIZATION ###
@@ -57,11 +57,12 @@ function policy_iteration(env::AbsEnvironment; Ɣ=0.9, verbose=false)
     end
 
     policyStable = false
-    iteration = 1
+    iteration = 0
     while !policyStable
         ### POLICY EVALUATION ###
+        Ps != nothing && push!(Ps, copy(policy.mapping))
         iterative_policy_evaluation(env, policy; Ɣ=Ɣ, V=V, verbose=verbose)
-
+        Vs != nothing && push!(Vs, copy(V))
         ### GREEDY POLICY IMPROVEMENT ###
         policyStable = true
         verbose && println("Iteration: $(iteration)")
@@ -97,7 +98,7 @@ function policy_iteration(env::AbsEnvironment; Ɣ=0.9, verbose=false)
     policy, V
 end
 
-function synchronous_value_iteration(env::AbsEnvironment; Ɣ=0.9, verbose=false)
+function synchronous_value_iteration(env::AbsEnvironment; Ɣ=0.9, verbose=false, Vs=nothing)
     #Initialize V
     V = Dict{AbsState, Float64}()
     states = getAllStates(env)
@@ -132,6 +133,7 @@ function synchronous_value_iteration(env::AbsEnvironment; Ɣ=0.9, verbose=false)
             verbose && println("Delta: $(delta)\n")
         end
         for s in states; V[s] = copyV[s]; end
+        Vs != nothing && push!(Vs, copy(V))
     end
 
     println("Number of iterations: $(iteration)")
@@ -154,12 +156,11 @@ function synchronous_value_iteration(env::AbsEnvironment; Ɣ=0.9, verbose=false)
     return policy, V
 end
 
-function gauss_seidel_value_iteration(env::AbsEnvironment; Ɣ=0.9, verbose=false)
+function gauss_seidel_value_iteration(env::AbsEnvironment; Ɣ=0.9, verbose=false, Vs=nothing)
     #Initialize V
     V = Dict{AbsState, Float64}()
     states = getAllStates(env)
     for s in states; V[s] = 0.0; end
-
     #Value Iteration
     delta = 1.0
     eps = 1e-30
@@ -195,6 +196,7 @@ function gauss_seidel_value_iteration(env::AbsEnvironment; Ɣ=0.9, verbose=false
             verbose && println("Delta: $(delta)\n")
         end
         for s in states; V[s] = copyV[s]; end
+        Vs != nothing && push!(Vs, copy(V))
     end
 
     println("Number of iterations: $(iteration)")
