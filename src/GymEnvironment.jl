@@ -4,6 +4,7 @@ global const gym = PyCall.pywrap(PyCall.pyimport("gym"))
 
 type GymState <: AbsState; data; done; end
 type GymAction <: AbsAction; action; end
+size(s::GymState) = size(s.data)
 
 ==(lhs::GymAction, rhs::GymAction) = lhs.action == rhs.action
 isequal(lhs::GymAction, rhs::GymAction) = lhs.action == rhs.action
