@@ -52,5 +52,4 @@ end
 monitor_start(env::GymEnv, fname::AbstractString) = env.env[:monitor][:start](fname)
 monitor_close(env::GymEnv) = env.env[:monitor][:close]()
 render_env(env::GymEnv) = env.env[:render]()
-sample(env) = GymAction(env.env[:action_space][:sample]())
-
+sample(env::GymEnv) = GymAction(env.env[:action_space][:sample]())
