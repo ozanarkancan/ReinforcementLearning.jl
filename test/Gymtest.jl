@@ -2,7 +2,7 @@ using ReinforcementLearning, Base.Test
 
 env = GymEnv("Breakout-v0")
 
-@test length(env.actions) == 6
+@test length(env.actions) == 4
 
 start = getInitialState(env)
 @test isTerminal(start, env) == false
