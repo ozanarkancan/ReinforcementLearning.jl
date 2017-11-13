@@ -9,7 +9,7 @@ hash(s::State) = hash(s.id)
 isequal(lhs::Action, rhs::Action) = lhs.id == rhs.id
 hash(a::Action) = hash(a.id)
 
-type MDP <: AbsEnvironment
+mutable struct MDP <: AbsEnvironment
     ns#number of states
     na#number of actions
     graph::Dict{State, Dict{Action,Array{Tuple{State, Float64, Float64}}}}#state + action ->  [state, reward, prob]

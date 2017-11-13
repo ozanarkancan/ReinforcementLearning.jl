@@ -2,9 +2,9 @@ import Base.==
 import Base.isequal
 import Base.hash
 
-abstract AbsEnvironment
-abstract AbsAction
-abstract AbsState
+abstract type AbsEnvironment end
+abstract type AbsAction end
+abstract type AbsState end
 
 #returns successor states with their probabilities and related rewards
 getSuccessors(state::AbsState, env::AbsEnvironment) = error("getSuccessors is unimplemented")

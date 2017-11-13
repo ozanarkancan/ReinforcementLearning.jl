@@ -138,13 +138,13 @@ maze = generate_maze(h, w)
 print_maze(maze)
 =========================#
 
-type MazeState <: AbsState
+mutable struct MazeState <: AbsState
 	loc
 end
 
 @enum ActionEnum UP RIGHT DOWN LEFT
 
-type MazeAction <: AbsAction; act::ActionEnum; end
+mutable struct MazeAction <: AbsAction; act::ActionEnum; end
 
 ==(lhs::MazeAction, rhs::MazeAction) = lhs.act == rhs.act
 isequal(lhs::MazeAction, rhs::MazeAction) = lhs.act == rhs.act
@@ -156,7 +156,7 @@ hash(s::MazeState) = hash(s.loc)
 
 hash(t::Tuple{MazeState, MazeAction}) = hash([t[1].loc, t[2].act])
 
-type MazeEnv <: AbsEnvironment
+mutable struct MazeEnv <: AbsEnvironment
 	dims
 	maze
 	start

@@ -3,8 +3,8 @@ import Base.size
 
 global const gym = PyCall.pywrap(PyCall.pyimport("gym"))
 
-type GymState <: AbsState; data; done; end
-type GymAction <: AbsAction; action; end
+mutable struct GymState <: AbsState; data; done; end
+mutable struct GymAction <: AbsAction; action; end
 
 size(s::GymState) = size(s.data)
 
@@ -12,7 +12,7 @@ size(s::GymState) = size(s.data)
 isequal(lhs::GymAction, rhs::GymAction) = lhs.action == rhs.action
 hash(a::GymAction) = hash(a.action)
 
-type Spec
+struct Spec
 	id
 	nondeterministic
 	reward_threshold
@@ -21,7 +21,7 @@ type Spec
 	trials
 end
 
-type GymEnv <: AbsEnvironment
+struct GymEnv <: AbsEnvironment
 	env
 	actions
 	spec

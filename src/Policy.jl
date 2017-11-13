@@ -1,4 +1,4 @@
-type Policy
+mutable struct Policy
     mapping
     Policy() = new(Dict{AbsState, Array{Tuple{AbsAction, Float64}}}())
     Policy(mapping) = new(mapping)

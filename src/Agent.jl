@@ -1,17 +1,18 @@
-abstract AbsAgent
+abstract type AbsAgent end
 
 #returns an action
 play(agent::AbsAgent, state::AbsState, env::AbsEnvironment; learn=true) = error("play is unimplemented")
 observe(agent::AbsAgent, state::AbsState, reward::Float64, env::AbsEnvironment; learn=true, terminal=false) = nothing
 
-type RandomAgent <: AbsAgent end
+struct RandomAgent <: AbsAgent end
+
 function play(agent::RandomAgent, state::AbsState, env::AbsEnvironment; learn=false)
 	actionSet = getActions(state, env)
 	return shuffle(actionSet)[1]
 end
 
 #Q-learning
-type QLearner <: AbsAgent
+mutable struct QLearner <: AbsAgent
 	Qtable::Dict{Tuple{AbsState, AbsAction}, Float64}
 	Ɣ::Float64
 	α::Float64
@@ -72,7 +73,7 @@ function observe(agent::QLearner, state::AbsState, reward::Float64, env::AbsEnvi
 	end
 end
 
-type SarsaLearner <: AbsAgent; 
+mutable struct SarsaLearner <: AbsAgent; 
 	qlearner::QLearner
 	S
 	A
@@ -126,7 +127,7 @@ function observe(agent::SarsaLearner, state::AbsState, reward::Float64, env::Abs
 	end
 end
 
-type SarsaLambdaLearner <: AbsAgent; 
+mutable struct SarsaLambdaLearner <: AbsAgent; 
 	qlearner::QLearner
 	E::Dict{Tuple{AbsState, AbsAction}, Float64}
 	λ
@@ -205,13 +206,13 @@ function observe(agent::SarsaLambdaLearner, state::AbsState, reward::Float64, en
 	end
 end
 
-type PolicyAgent <: AbsAgent
+mutable struct PolicyAgent <: AbsAgent
 	policy::Policy
 end
 
 play(agent::PolicyAgent, state::AbsState, env::AbsEnvironment; learn=true) = agent.policy.mapping[state][1][1]
 
-type MonteCarloAgent <: AbsAgent
+mutable struct MonteCarloAgent <: AbsAgent
 	Qtable::Dict{AbsState, Dict{AbsAction, Float64}}
 	policy::Policy
 	returns::Dict{AbsState, Dict{AbsAction, Array{Float64, 1}}}
