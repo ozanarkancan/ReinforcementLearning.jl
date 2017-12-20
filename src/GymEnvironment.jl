@@ -30,11 +30,23 @@ end
 function GymEnv(name::AbstractString)
 	env = gym.make(name)
 	actions = nothing
+	
 	if :n in keys(env[:action_space])
 		actions = map(GymAction, 0:(env[:action_space][:n]-1))
-	else
+	elseif :low in keys(env[:action_space])
 		actions = (env[:action_space][:low], env[:action_space][:high])
+	else#algorithmic
+		t = env[:action_space][:shape]
+        actions = []
+        for i=0:(t[1][1]-1)
+            for j=0:(t[2][1]-1)
+                for k=0:(t[3][1]-1)
+                    push!(actions, GymAction((i, j, k)))
+                end
+            end
+        end
 	end
+
 	s = Spec(env[:spec][:id], env[:spec][:nondeterministic], env[:spec][:reward_threshold],
 		env[:spec][:tags], env[:spec][:timestep_limit], env[:spec][:trials])
 	GymEnv(env, actions, s)
